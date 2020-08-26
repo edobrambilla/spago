@@ -19,9 +19,9 @@ func TestModel_Forward(t *testing.T) {
 
 	model := newTestModel()
 	g := ag.NewGraph()
-	graph := newTestGraph()
+	testGraph := newTestGraph()
 	proc := model.NewProc(g)
-	proc.(*Processor).SetDirectedGraph(graph)
+	proc.(*Processor).SetDirectedGraph(testGraph)
 
 	// == Forward
 
