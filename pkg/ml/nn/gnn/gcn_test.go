@@ -71,31 +71,68 @@ func TestModel_Forward(t *testing.T) {
 	}
 
 	// == Backward
-	//y[0].PropagateGrad(mat.NewDense(3, 3, []float64{
-	//
-	//}))
-	//
-	//y[1].PropagateGrad(mat.NewDense(3, 3, []float64{
-	//
-	//}))
-	//y[2].PropagateGrad(mat.NewDense(3, 3, []float64{
-	//
-	//}))
-	//
-	//y[3].PropagateGrad(mat.NewDense(3, 3, []float64{
-	//
-	//}))
-	//y[4].PropagateGrad(mat.NewDense(3, 3, []float64{
-	//
-	//}))
-	//
-	//y[5].PropagateGrad(mat.NewDense(3, 3, []float64{
-	//
-	//}))
-	//g.BackwardAll()
-	//
-	//
 
+	y[0].PropagateGrad(mat.NewVecDense([]float64{0.3, 0.2, -0.2}))
+	y[1].PropagateGrad(mat.NewVecDense([]float64{0.5, 0.4, 0.0}))
+	y[2].PropagateGrad(mat.NewVecDense([]float64{0.3, -0.7, 0.2}))
+	y[3].PropagateGrad(mat.NewVecDense([]float64{-0.9, -0.7, 0.2}))
+	y[4].PropagateGrad(mat.NewVecDense([]float64{0.7, 0.2, 0.1}))
+	y[5].PropagateGrad(mat.NewVecDense([]float64{0.4, 0.5, 0.2}))
+
+	g.BackwardAll()
+
+	if !floats.EqualApprox(model.W[0].Grad().Data(), []float64{
+		0.1622302865, -0.0163271814, 0.0074281477,
+		0.1060745809, 0.0172205652, 0.0210614703,
+		-0.1637550022, -0.008649346, -0.0100562922,
+		-0.0476744545, -0.0950999254, -0.078159356,
+	}, 1.0e-05) {
+		t.Error("W0 gradients don't match the expected values")
+	}
+
+	if !floats.EqualApprox(model.W[1].Grad().Data(), []float64{
+		0.2690607435, -0.0412932047, 0.056239848,
+		0.1421173997, -0.0805320564, 0.0724676832,
+		0.10486543, -0.0184519404, 0.0769265757,
+	}, 1.0e-05) {
+		t.Error("W1 gradients don't match the expected values")
+	}
+
+	if !floats.EqualApprox(x1.Grad().Data(), []float64{
+		0.0674194741, 0.0759381594, -0.0527890726, -0.0768017336,
+	}, 1.0e-05) {
+		t.Error("x1 gradients don't match the expected values")
+	}
+
+	if !floats.EqualApprox(x2.Grad().Data(), []float64{
+		0.066802408, 0.0534937184, -0.0731871843, -0.0290116703,
+	}, 1.0e-05) {
+		t.Error("x2 gradients don't match the expected values")
+	}
+
+	if !floats.EqualApprox(x3.Grad().Data(), []float64{
+		0.0299081169, 0.0423251939, -0.0511832432, -0.0088899801,
+	}, 1.0e-05) {
+		t.Error("x3 gradients don't match the expected values")
+	}
+
+	if !floats.EqualApprox(x4.Grad().Data(), []float64{
+		0.0002050635, 0.0268003286, 0.0844189059, -0.1296418032,
+	}, 1.0e-05) {
+		t.Error("x4 gradients don't match the expected values")
+	}
+
+	if !floats.EqualApprox(x5.Grad().Data(), []float64{
+		-0.0033701943, 0.025471633, 0.1062986853, -0.1514780087,
+	}, 1.0e-05) {
+		t.Error("x5 gradients don't match the expected values")
+	}
+
+	if !floats.EqualApprox(x6.Grad().Data(), []float64{
+		-0.0033701943, 0.025471633, 0.1062986853, -0.1514780087,
+	}, 1.0e-05) {
+		t.Error("x6 gradients don't match the expected values")
+	}
 }
 
 func newTestModel() *Model {
