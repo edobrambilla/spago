@@ -46,6 +46,7 @@ type Processor struct {
 	query       *linear.Processor
 	key         *linear.Processor
 	value       *linear.Processor
+	eps         ag.Node
 }
 
 func (m *Model) NewProc(g *ag.Graph) nn.Processor {
@@ -59,6 +60,7 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 		query: m.Query.NewProc(g).(*linear.Processor),
 		key:   m.Key.NewProc(g).(*linear.Processor),
 		value: m.Value.NewProc(g).(*linear.Processor),
+		eps:   g.NewScalar(0.00000000000001),
 	}
 }
 
@@ -72,9 +74,10 @@ func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	aks := make([]ag.Node, length)
 	aqs := make([]ag.Node, length)
 	ksum := g.NewVariable(mat.NewEmptyVecDense(ks[0].Value().Size()), true)
+	one := g.NewScalar(1.0)
 	for i := range ks {
-		aks[i] = g.AddScalar(g.ELU(ks[i], g.NewScalar(1.0)), g.NewScalar(1.0))
-		aqs[i] = g.AddScalar(g.ELU(qs[i], g.NewScalar(1.0)), g.NewScalar(1.0))
+		aks[i] = g.AddScalar(g.ELU(ks[i], g.NewScalar(1.0)), one)
+		aqs[i] = g.AddScalar(g.ELU(qs[i], g.NewScalar(1.0)), one)
 		ksum = g.Add(ksum, aks[i])
 	}
 
@@ -84,7 +87,7 @@ func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	kv := g.Mul(keys, values)
 
 	for i, q := range aqs {
-		context[i] = g.DivScalar(g.Mul(g.T(q), kv), g.Dot(aqs[i], ksum))
+		context[i] = g.DivScalar(g.Mul(g.T(q), kv), g.AddScalar(g.Dot(aqs[i], ksum), p.eps))
 	}
 	return context
 }
