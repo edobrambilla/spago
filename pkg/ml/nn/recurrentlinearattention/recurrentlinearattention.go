@@ -125,8 +125,7 @@ func (p *Processor) forward(x ag.Node) (s *State) {
 	}
 	n := g.Mul(g.T(aquery), s.S)
 	d := g.AddScalar(g.Dot(aquery, s.Z), p.eps)
-	v := g.DivScalar(n, d)
-	s.Y = g.Add(x, v)
+	s.Y = g.DivScalar(n, d)
 	return
 }
 

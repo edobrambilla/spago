@@ -26,7 +26,7 @@ func TestModel_ForwardWithPrev(t *testing.T) {
 	_ = proc.Forward(x0)
 	s0 := proc.LastState()
 
-	if !floats.EqualApprox(s0.Y.Value().Data(), []float64{0.08, -2.0, -1.35, 1.41}, 1.0e-05) {
+	if !floats.EqualApprox(s0.Y.Value().Data(), []float64{0.88, -1.1, -0.45, 0.41}, 1.0e-05) {
 		t.Error("The output 0 doesn't match the expected values")
 	}
 
@@ -34,7 +34,7 @@ func TestModel_ForwardWithPrev(t *testing.T) {
 	_ = proc.Forward(x1)
 	s1 := proc.LastState()
 
-	if !floats.EqualApprox(s1.Y.Value().Data(), []float64{1.3996537, -0.8455373, -0.13689751, 0.753609420}, 1.0e-05) {
+	if !floats.EqualApprox(s1.Y.Value().Data(), []float64{0.5996537, -0.545537, -0.63689751, 0.453609420}, 1.0e-05) {
 		t.Error("The output 1 doesn't match the expected values")
 	}
 
