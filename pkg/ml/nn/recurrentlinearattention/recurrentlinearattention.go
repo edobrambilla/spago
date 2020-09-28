@@ -123,7 +123,7 @@ func (p *Processor) forward(x ag.Node) (s *State) {
 	} else {
 		s.Z = akey
 	}
-	n := g.Mul(g.T(aquery), s.S)
+	n := g.T(g.Mul(g.T(aquery), s.S))
 	d := g.AddScalar(g.Dot(aquery, s.Z), p.eps)
 	s.Y = g.DivScalar(n, d)
 	return
