@@ -25,9 +25,10 @@ func New(inputSize int, hashSize int, narity int) *Data {
 	if narity > 3 || narity < 2 {
 		panic("projection: narity can be 2 or 3.")
 	}
-	w := make([]mat.Matrix, inputSize)
+	w := make([]mat.Matrix, hashSize)
 	rndGen := rand.NewLockedRand(33)
 	for i := 0; i < hashSize; i++ {
+		w[i] = mat.NewEmptyVecDense(inputSize)
 		initializers.Normal(w[i], 0, 1, rndGen)
 	}
 	return &Data{
