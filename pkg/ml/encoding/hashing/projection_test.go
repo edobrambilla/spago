@@ -12,14 +12,25 @@ import (
 
 func TestModel_Forward(t *testing.T) {
 
-	h := New(5, 5, 3)
+	h2 := New(5, 5, 2)
 
 	// == Forward
 
-	x := mat.NewVecDense([]float64{-0.8, -0.9, -0.9, 1.0, 0.5})
-	y := h.GetHash(x)
+	x2 := mat.NewVecDense([]float64{-0.8, -0.9, -0.9, 1.0, 0.5})
+	y2 := h2.GetHash(x2)
 
-	if !floats.EqualApprox(y.Data(), []float64{-0.456097, -0.855358, -0.79552, 0.844718}, 1.0e-05) {
+	if !floats.EqualApprox(y2.Data(), []float64{1.0, 0.0, 1.0, 0.0, 0.0}, 1.0e-05) {
+		t.Error("The output doesn't match the expected values")
+	}
+
+	h3 := New(5, 5, 3)
+
+	// == Forward
+
+	x3 := mat.NewVecDense([]float64{-0.8, -0.9, -0.9, 1.0, 0.5})
+	y3 := h3.GetHash(x3)
+
+	if !floats.EqualApprox(y3.Data(), []float64{0.0, -1.0, 1.0, 0.0, 0.0}, 1.0e-05) {
 		t.Error("The output doesn't match the expected values")
 	}
 }

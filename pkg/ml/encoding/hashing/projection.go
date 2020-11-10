@@ -41,14 +41,15 @@ func quantization(n float64, narity int, min float64, max float64) float64 {
 	if narity > 3 || narity < 2 {
 		panic("projection: narity can be 2 or 3.")
 	}
-	delta := math.Abs(max+min) / float64(narity)
+
 	if narity == 2 {
-		if n >= delta {
+		if n > 0 {
 			return 1.0
 		} else {
 			return 0.0
 		}
 	}
+	delta := math.Abs(max-min) / float64(narity)
 	if narity == 3 {
 		if n > delta {
 			return 1.0
@@ -65,7 +66,7 @@ func (d *Data) GetHash(input mat.Matrix) *mat.Dense {
 	out := mat.NewEmptyVecDense(d.OutputSize)
 	for i := 0; i < d.OutputSize; i++ {
 		p := input.DotUnitary(d.W[i])
-		out.Data()[i] = quantization(p, 3, -1.0, 1.0)
+		out.Data()[i] = quantization(p, d.Config.Narity, -1.0, 1.0)
 	}
 	return out
 }
