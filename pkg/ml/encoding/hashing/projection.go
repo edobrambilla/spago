@@ -12,15 +12,20 @@ import (
 )
 
 type Config struct {
+	// The encoder output size n
 	OutputSize int
-	Narity     int
+	// Narity 2: Output encoder is Rn ∈ {0, 1}.
+	// Narity 3: Output encoder is Rn ∈ {-1, 0, 1}.
+	Narity int
 }
 
 type Data struct {
+	// Random vectors, normal distributed
 	W []mat.Matrix
 	Config
 }
 
+// Hashing scheme like Charikar, Similarity Estimation Techniques from Rounding Algorithms
 func New(inputSize int, hashSize int, narity int) *Data {
 	if narity > 3 || narity < 2 {
 		panic("projection: narity can be 2 or 3.")
@@ -37,6 +42,7 @@ func New(inputSize int, hashSize int, narity int) *Data {
 	}
 }
 
+// Simple scheme, todo can be improved
 func quantization(n float64, narity int, min float64, max float64) float64 {
 	if narity > 3 || narity < 2 {
 		panic("projection: narity can be 2 or 3.")
