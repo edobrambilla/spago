@@ -23,6 +23,7 @@ type Config struct {
 	YStride        int
 	InputChannels  int
 	OutputChannels int
+	Mask           []int
 	Activation     ag.OpName
 }
 
@@ -33,12 +34,21 @@ type Model struct {
 }
 
 func New(config Config) *Model {
+	if config.Mask != nil && config.InputChannels != len(config.Mask) {
+		panic("convolution: Wrong mask size")
+	}
 	paramsSize := config.InputChannels * config.OutputChannels
 	kernels := make([]*nn.Param, paramsSize, paramsSize)
 	biases := make([]*nn.Param, paramsSize, paramsSize)
 	for i := 0; i < paramsSize; i++ {
-		kernels[i] = nn.NewParam(mat.NewEmptyDense(config.KernelSizeX, config.KernelSizeY))
-		biases[i] = nn.NewParam(mat.NewEmptyVecDense(1))
+		if config.Mask == nil || config.Mask[i%len(config.Mask)] == 1 {
+			kernels[i] = nn.NewParam(mat.NewEmptyDense(config.KernelSizeX, config.KernelSizeY))
+			biases[i] = nn.NewParam(mat.NewEmptyVecDense(1))
+		}
+		if config.Mask == nil || config.Mask[i%len(config.Mask)] == 0 {
+			kernels[i] = nn.NewParam(mat.NewEmptyDense(config.KernelSizeX, config.KernelSizeY), nn.RequiresGrad(false))
+			biases[i] = nn.NewParam(mat.NewEmptyVecDense(1), nn.RequiresGrad(false))
+		}
 	}
 	return &Model{
 		Config: config,
@@ -114,11 +124,25 @@ func (p *Processor) fwdConcurrent(xs []ag.Node) []ag.Node {
 func (p *Processor) forward(xs []ag.Node, outputChannel int) ag.Node {
 	g := p.Graph
 	offset := outputChannel * p.InputChannels
-	out := nn.Conv2D(g, p.k[0+offset], xs[0], p.XStride, p.YStride)
-	out = g.AddScalar(out, p.b[0+offset])
+	var out ag.Node
+	if p.Config.Mask == nil || p.Config.Mask[0] == 1 {
+		out = nn.Conv2D(g, p.k[0+offset], xs[0], p.XStride, p.YStride)
+		out = g.AddScalar(out, p.b[0+offset])
+	}
+
 	for i := 1; i < len(xs); i++ {
-		out = g.Add(out, nn.Conv2D(g, p.k[i+offset], xs[i], p.XStride, p.YStride))
-		out = g.AddScalar(out, p.b[i+offset])
+		if out != nil {
+			if p.Config.Mask == nil || p.Config.Mask[i] == 1 {
+				out = g.Add(out, nn.Conv2D(g, p.k[i+offset], xs[i], p.XStride, p.YStride))
+				out = g.AddScalar(out, p.b[i+offset])
+			}
+		} else {
+			if p.Config.Mask == nil || p.Config.Mask[i] == 1 {
+				out = nn.Conv2D(g, p.k[i+offset], xs[i], p.XStride, p.YStride)
+				out = g.AddScalar(out, p.b[i+offset])
+			}
+		}
+
 	}
 	return g.Invoke(p.Activation, out)
 }
