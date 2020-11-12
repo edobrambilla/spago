@@ -53,3 +53,25 @@ func ForEachBatch(datasetSize, batchSize int, callback func(start, end int)) {
 		callback(start, end)
 	}
 }
+
+func GenerateNGrams(n, dataSize int) [][]int {
+	if n <= 0 {
+		panic("utils: invalid ngrams size")
+	}
+	var out [][]int
+	if dataSize-n+1 > 0 {
+		out = make([][]int, dataSize-n+1)
+	}
+	for i := 0; i < dataSize; i++ {
+		if i < dataSize-n+1 {
+			out[i] = make([]int, n)
+			p := 0
+			for k := i; k < i+n; k++ {
+				out[i][p] = k
+				p++
+			}
+		}
+
+	}
+	return out
+}
