@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
-	"github.com/nlpodyssey/spago/pkg/ml/nn/linear"
+	"github.com/nlpodyssey/spago/pkg/nlp/embeddings"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
+	"log"
 	"os"
+	"strconv"
 )
 
 const (
@@ -28,6 +30,7 @@ var (
 type Config struct {
 	HiddenAct             string            `json:"hidden_act"`
 	ConvAct               string            `json:"conv_act"`
+	ConvSize              int               `json:"conv_size"`
 	ProjectionSize        int               `json:"projection_sise"`
 	ProjectionArity       int               `json:"projection_arity"`
 	EncodingSize          int               `json:"encoding_size"`
@@ -63,20 +66,79 @@ func LoadConfig(file string) (Config, error) {
 type Model struct {
 	Config     Config
 	Vocabulary *vocabulary.Vocabulary
-	//Embeddings      *Embeddings
-	Encoder *Encoder
-	//AttentionNet    *AttentionNet
-	//FeatureNet      *FeatureNet
-	Classifier *linear.Model
+	Embeddings *Embeddings
+	Encoder    *Encoder
+	//AttentionNet   *AttentionNet
+	//FeatureNet     *FeatureNet
+	TextEncoder *TextEncoder
+	Classifier  *Classifier
+}
+
+// NewDefaultBERT returns a new model based on the original BERT architecture.
+func NewDefaultBERT(config Config, embeddingsStoragePath string) *Model {
+	nchannels := config.UnigramsChannels + config.BigramsChannels + config.TrigramsChannels + config.FourgramsChannels +
+		config.FivegramsChannels + config.Skip1BigramsChannels + config.Skip1TrigramsChannels +
+		config.Skip2BigramsChannels + config.Skip2TrigramsChannels
+	return &Model{
+		Config:     config,
+		Vocabulary: nil,
+		Embeddings: &Embeddings{
+			EmbeddingsConfig: EmbeddingsConfig{
+				Size:                0,
+				ProjectionSize:      config.ProjectionSize,
+				ProjectionArity:     3,
+				WordsMapFilename:    embeddingsStoragePath,
+				DeletePreEmbeddings: false,
+			},
+			Word: &embeddings.Model{
+				Config: embeddings.Config{
+					Size:             0,
+					UseZeroEmbedding: false,
+					DBPath:           embeddingsStoragePath,
+					ReadOnly:         false,
+					ForceNewDB:       false,
+				},
+				UsedEmbeddings: nil,
+				ZeroEmbedding:  &nn.Param{},
+			},
+		},
+		Encoder: &Encoder{
+			EncoderConfig: EncoderConfig{
+				InputSize:   config.ProjectionSize,
+				EncodedSize: config.EncodingSize,
+				Activation:  ag.OpIdentity,
+			},
+		},
+		TextEncoder: &TextEncoder{},
+		Classifier: NewPradoClassifier(ClassifierConfig{
+			TextEncodingSize: nchannels * config.ConvSize,
+			Labels: func(x map[string]string) []string {
+				if len(x) == 0 {
+					return []string{"LABEL_0", "LABEL_1"} // assume binary classification by default
+				}
+				y := make([]string, len(x))
+				for k, v := range x {
+					i, err := strconv.Atoi(k)
+					if err != nil {
+						log.Fatal(err)
+					}
+					y[i] = v
+				}
+				return y
+			}(config.Id2Label),
+			Activation: ag.OpIdentity,
+		}),
+	}
 }
 
 type Processor struct {
 	nn.BaseProcessor
-	//Embeddings      *EmbeddingsProcessor
-	Encoder *EncoderProcessor
+	Embeddings *EmbeddingsProcessor
+	Encoder    *EncoderProcessor
 	//AttentionNet    *AttentionNetProcessor
 	//FeatureNet      *FeatureNetProcessor
-	Classifier *ClassifierProcessor
+	TextEncoder *TextEncoderProcessor
+	Classifier  *ClassifierProcessor
 }
 
 func (m *Model) NewProc(g *ag.Graph) nn.Processor {
@@ -87,11 +149,12 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 			Graph:             g,
 			FullSeqProcessing: true,
 		},
-		//Embeddings:      m.Embeddings.NewProc(g).(*EmbeddingsProcessor),
-		Encoder: m.Encoder.NewProc(g).(*EncoderProcessor),
+		Embeddings: m.Embeddings.NewProc(g).(*EmbeddingsProcessor),
+		Encoder:    m.Encoder.NewProc(g).(*EncoderProcessor),
 		//AttentionNet:    m.AttentionNet.NewProc(g).(*AttentionNetProcessor),
 		//FeatureNet:      m.FeatureNet.NewProc(g).(*FeatureNetProcessor),
-		Classifier: m.Classifier.NewProc(g).(*ClassifierProcessor),
+		TextEncoder: m.TextEncoder.NewProc(g).(*TextEncoderProcessor),
+		Classifier:  m.Classifier.NewProc(g).(*ClassifierProcessor),
 	}
 }
 
