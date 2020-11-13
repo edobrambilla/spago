@@ -64,7 +64,7 @@ type Model struct {
 	Config     Config
 	Vocabulary *vocabulary.Vocabulary
 	//Embeddings      *Embeddings
-	//Encoder         *Encoder
+	Encoder *Encoder
 	//AttentionNet    *AttentionNet
 	//FeatureNet      *FeatureNet
 	Classifier *linear.Model
@@ -73,10 +73,10 @@ type Model struct {
 type Processor struct {
 	nn.BaseProcessor
 	//Embeddings      *EmbeddingsProcessor
-	//Encoder         *EncoderProcessor
+	Encoder *EncoderProcessor
 	//AttentionNet    *AttentionNetProcessor
 	//FeatureNet      *FeatureNetProcessor
-	//Classifier 	  *ClassifierProcessor
+	Classifier *ClassifierProcessor
 }
 
 func (m *Model) NewProc(g *ag.Graph) nn.Processor {
@@ -88,10 +88,10 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 			FullSeqProcessing: true,
 		},
 		//Embeddings:      m.Embeddings.NewProc(g).(*EmbeddingsProcessor),
-		//Encoder:         m.Encoder.NewProc(g).(*EncoderProcessor),
+		Encoder: m.Encoder.NewProc(g).(*EncoderProcessor),
 		//AttentionNet:    m.AttentionNet.NewProc(g).(*AttentionNetProcessor),
 		//FeatureNet:      m.FeatureNet.NewProc(g).(*FeatureNetProcessor),
-		//Classifier:      m.Classifier.NewProc(g).(*ClassifierProcessor),
+		Classifier: m.Classifier.NewProc(g).(*ClassifierProcessor),
 	}
 }
 
