@@ -28,7 +28,7 @@ type Classifier struct {
 	*stack.Model
 }
 
-func NewTokenClassifier(config ClassifierConfig) *Classifier {
+func NewPradoClassifier(config ClassifierConfig) *Classifier {
 	return &Classifier{
 		config: config,
 		Model: stack.New(
