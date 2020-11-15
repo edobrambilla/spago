@@ -25,7 +25,7 @@ type TextEncoderProcessor struct {
 }
 
 func (m *TextEncoder) NewProc(g *ag.Graph) nn.Processor {
-	return &Processor{
+	return &TextEncoderProcessor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
 			Mode:              nn.Training,

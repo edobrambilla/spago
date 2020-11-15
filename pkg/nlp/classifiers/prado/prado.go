@@ -42,7 +42,6 @@ type Config struct {
 	Skip1BigramsChannels  int               `json:"skip1bigrams_channels"`
 	Skip2BigramsChannels  int               `json:"skip2bigrams_channels"`
 	Skip1TrigramsChannels int               `json:"skip1trigrams_channels"`
-	Skip2TrigramsChannels int               `json:"skip2trigrams_channels"`
 	OutputSize            int               `json:"output_size"`
 	TypeVocabSize         int               `json:"type_vocab_size"`
 	VocabSize             int               `json:"vocab_size"`
@@ -69,16 +68,16 @@ type Model struct {
 	Embeddings *Embeddings
 	Encoder    *Encoder
 	//AttentionNet   *AttentionNet
-	//FeatureNet     *FeatureNet
+	FeatureNet  *FeatureNet
 	TextEncoder *TextEncoder
 	Classifier  *Classifier
 }
 
 // NewDefaultBERT returns a new model based on the original BERT architecture.
 func NewDefaultBERT(config Config, embeddingsStoragePath string) *Model {
-	nchannels := config.UnigramsChannels + config.BigramsChannels + config.TrigramsChannels + config.FourgramsChannels +
+	nChannels := config.UnigramsChannels + config.BigramsChannels + config.TrigramsChannels + config.FourgramsChannels +
 		config.FivegramsChannels + config.Skip1BigramsChannels + config.Skip1TrigramsChannels +
-		config.Skip2BigramsChannels + config.Skip2TrigramsChannels
+		config.Skip2BigramsChannels
 	return &Model{
 		Config:     config,
 		Vocabulary: nil,
@@ -111,7 +110,7 @@ func NewDefaultBERT(config Config, embeddingsStoragePath string) *Model {
 		},
 		TextEncoder: &TextEncoder{},
 		Classifier: NewPradoClassifier(ClassifierConfig{
-			TextEncodingSize: nchannels * config.ConvSize,
+			TextEncodingSize: nChannels * config.ConvSize,
 			Labels: func(x map[string]string) []string {
 				if len(x) == 0 {
 					return []string{"LABEL_0", "LABEL_1"} // assume binary classification by default
@@ -136,7 +135,7 @@ type Processor struct {
 	Embeddings *EmbeddingsProcessor
 	Encoder    *EncoderProcessor
 	//AttentionNet    *AttentionNetProcessor
-	//FeatureNet      *FeatureNetProcessor
+	FeatureNet  *FeatureNetProcessor
 	TextEncoder *TextEncoderProcessor
 	Classifier  *ClassifierProcessor
 }
@@ -152,7 +151,7 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 		Embeddings: m.Embeddings.NewProc(g).(*EmbeddingsProcessor),
 		Encoder:    m.Encoder.NewProc(g).(*EncoderProcessor),
 		//AttentionNet:    m.AttentionNet.NewProc(g).(*AttentionNetProcessor),
-		//FeatureNet:      m.FeatureNet.NewProc(g).(*FeatureNetProcessor),
+		FeatureNet:  m.FeatureNet.NewProc(g).(*FeatureNetProcessor),
 		TextEncoder: m.TextEncoder.NewProc(g).(*TextEncoderProcessor),
 		Classifier:  m.Classifier.NewProc(g).(*ClassifierProcessor),
 	}
