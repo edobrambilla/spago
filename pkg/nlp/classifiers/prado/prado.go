@@ -63,14 +63,14 @@ func LoadConfig(file string) (Config, error) {
 }
 
 type Model struct {
-	Config     Config
-	Vocabulary *vocabulary.Vocabulary
-	Embeddings *Embeddings
-	Encoder    *Encoder
-	//AttentionNet   *AttentionNet
-	FeatureNet  *FeatureNet
-	TextEncoder *TextEncoder
-	Classifier  *Classifier
+	Config       Config
+	Vocabulary   *vocabulary.Vocabulary
+	Embeddings   *Embeddings
+	Encoder      *Encoder
+	AttentionNet *FeatureNet
+	FeatureNet   *FeatureNet
+	TextEncoder  *TextEncoder
+	Classifier   *Classifier
 }
 
 // NewDefaultBERT returns a new model based on the original BERT architecture.
@@ -99,6 +99,36 @@ func NewDefaultBERT(config Config, embeddingsStoragePath string) *Model {
 				},
 				UsedEmbeddings: nil,
 				ZeroEmbedding:  &nn.Param{},
+			},
+		},
+		AttentionNet: &FeatureNet{
+			config: FeatureNetConfig{
+				EncodingSize:          config.EncodingSize,
+				UnigramsChannels:      config.UnigramsChannels,
+				BigramsChannels:       config.BigramsChannels,
+				TrigramsChannels:      config.TrigramsChannels,
+				FourgramsChannels:     config.FourgramsChannels,
+				FivegramsChannels:     config.FivegramsChannels,
+				Skip1BigramsChannels:  config.Skip1BigramsChannels,
+				Skip2BigramsChannels:  config.Skip2BigramsChannels,
+				Skip1TrigramsChannels: config.Skip1TrigramsChannels,
+				AttentionNet:          true,
+				OutputSize:            config.ConvSize,
+			},
+		},
+		FeatureNet: &FeatureNet{
+			config: FeatureNetConfig{
+				EncodingSize:          config.EncodingSize,
+				UnigramsChannels:      config.UnigramsChannels,
+				BigramsChannels:       config.BigramsChannels,
+				TrigramsChannels:      config.TrigramsChannels,
+				FourgramsChannels:     config.FourgramsChannels,
+				FivegramsChannels:     config.FivegramsChannels,
+				Skip1BigramsChannels:  config.Skip1BigramsChannels,
+				Skip2BigramsChannels:  config.Skip2BigramsChannels,
+				Skip1TrigramsChannels: config.Skip1TrigramsChannels,
+				AttentionNet:          false,
+				OutputSize:            config.ConvSize,
 			},
 		},
 		Encoder: &Encoder{
@@ -132,12 +162,12 @@ func NewDefaultBERT(config Config, embeddingsStoragePath string) *Model {
 
 type Processor struct {
 	nn.BaseProcessor
-	Embeddings *EmbeddingsProcessor
-	Encoder    *EncoderProcessor
-	//AttentionNet    *AttentionNetProcessor
-	FeatureNet  *FeatureNetProcessor
-	TextEncoder *TextEncoderProcessor
-	Classifier  *ClassifierProcessor
+	Embeddings   *EmbeddingsProcessor
+	Encoder      *EncoderProcessor
+	AttentionNet *FeatureNetProcessor
+	FeatureNet   *FeatureNetProcessor
+	TextEncoder  *TextEncoderProcessor
+	Classifier   *ClassifierProcessor
 }
 
 func (m *Model) NewProc(g *ag.Graph) nn.Processor {
@@ -148,12 +178,12 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 			Graph:             g,
 			FullSeqProcessing: true,
 		},
-		Embeddings: m.Embeddings.NewProc(g).(*EmbeddingsProcessor),
-		Encoder:    m.Encoder.NewProc(g).(*EncoderProcessor),
-		//AttentionNet:    m.AttentionNet.NewProc(g).(*AttentionNetProcessor),
-		FeatureNet:  m.FeatureNet.NewProc(g).(*FeatureNetProcessor),
-		TextEncoder: m.TextEncoder.NewProc(g).(*TextEncoderProcessor),
-		Classifier:  m.Classifier.NewProc(g).(*ClassifierProcessor),
+		Embeddings:   m.Embeddings.NewProc(g).(*EmbeddingsProcessor),
+		Encoder:      m.Encoder.NewProc(g).(*EncoderProcessor),
+		AttentionNet: m.FeatureNet.NewProc(g).(*FeatureNetProcessor),
+		FeatureNet:   m.FeatureNet.NewProc(g).(*FeatureNetProcessor),
+		TextEncoder:  m.TextEncoder.NewProc(g).(*TextEncoderProcessor),
+		Classifier:   m.Classifier.NewProc(g).(*ClassifierProcessor),
 	}
 }
 
