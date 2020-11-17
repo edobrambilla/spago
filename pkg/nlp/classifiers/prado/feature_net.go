@@ -175,6 +175,43 @@ func (m *FeatureNet) NewProc(g *ag.Graph) nn.Processor {
 	}
 }
 
+func (p *FeatureNetProcessor) calculateAttention(xs []ag.Node) []ag.Node {
+	attention := make([]ag.Node, len(xs))
+	sum := p.Graph.Exp(xs[0])
+	for i := 1; i < len(xs); i++ {
+		sum = p.Graph.Add(sum, p.Graph.Exp(xs[i]))
+	}
+	for i := 0; i < len(xs); i++ {
+		attention[i] = p.Graph.Div(p.Graph.Exp(xs[i]), sum)
+	}
+	return attention
+}
+
+func (p *FeatureNetProcessor) encodeNgrams(a [][]int, c int, ngramSize int, attentioNet bool, out [][]ag.Node, xs ...ag.Node) {
+	for n := 0; n < ngramSize; n++ {
+		fn := make([]ag.Node, len(a))
+		for i, ngram := range a {
+			switch ngramSize {
+			case 1:
+				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]])[0]
+			case 2:
+				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]])[0]
+			case 3:
+				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]])[0]
+			case 4:
+				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]], xs[ngram[3]])[0]
+			case 5:
+				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]], xs[ngram[3]], xs[ngram[4]])[0]
+			}
+
+		}
+		if attentioNet {
+			fn = p.calculateAttention(fn)
+		}
+		out[c+n] = fn
+	}
+}
+
 func (p *FeatureNetProcessor) Encode(config FeatureNetConfig, xs ...ag.Node) [][]ag.Node {
 
 	nChannels := config.UnigramsChannels + config.BigramsChannels + config.TrigramsChannels + config.FourgramsChannels +
@@ -187,73 +224,21 @@ func (p *FeatureNetProcessor) Encode(config FeatureNetConfig, xs ...ag.Node) [][
 	fourgrams := data.GenerateNGrams(4, len(xs))
 	fivgrams := data.GenerateNGrams(5, len(xs))
 	c := 0
-	for n := 0; n < config.UnigramsChannels; n++ {
-		fn := make([]ag.Node, len(unigrams))
-		for i, unigram := range unigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[unigram[0]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(unigrams, c, 1, config.AttentionNet, out, xs...)
 	c += config.UnigramsChannels
-	for n := 0; n < config.BigramsChannels; n++ {
-		fn := make([]ag.Node, len(bigrams))
-		for i, bigram := range bigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[bigram[0]], xs[bigram[1]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(bigrams, c, 2, config.AttentionNet, out, xs...)
 	c += config.BigramsChannels
-	for n := 0; n < config.TrigramsChannels; n++ {
-		fn := make([]ag.Node, len(trigrams))
-		for i, trigram := range bigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[trigram[0]], xs[trigram[1]], xs[trigram[2]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(trigrams, c, 3, config.AttentionNet, out, xs...)
 	c += config.TrigramsChannels
-	for n := 0; n < config.FourgramsChannels; n++ {
-		fn := make([]ag.Node, len(fourgrams))
-		for i, fourgram := range bigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[fourgram[0]], xs[fourgram[1]], xs[fourgram[2]],
-				xs[fourgram[3]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(fourgrams, c, 4, config.AttentionNet, out, xs...)
 	c += config.FourgramsChannels
-	for n := 0; n < config.FivegramsChannels; n++ {
-		fn := make([]ag.Node, len(fivgrams))
-		for i, fivegram := range bigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[fivegram[0]], xs[fivegram[1]], xs[fivegram[2]],
-				xs[fivegram[3]], xs[fivegram[4]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(fivgrams, c, 5, config.AttentionNet, out, xs...)
 	c += config.FivegramsChannels
-	for n := 0; n < config.Skip1BigramsChannels; n++ {
-		fn := make([]ag.Node, len(trigrams))
-		for i, trigram := range bigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[trigram[0]], xs[trigram[1]], xs[trigram[2]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(trigrams, c, 3, config.AttentionNet, out, xs...)
 	c += config.Skip1BigramsChannels
-	for n := 0; n < config.Skip2BigramsChannels; n++ {
-		fn := make([]ag.Node, len(fourgrams))
-		for i, fourgram := range bigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[fourgram[0]], xs[fourgram[1]], xs[fourgram[2]],
-				xs[fourgram[3]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(fourgrams, c, 4, config.AttentionNet, out, xs...)
 	c += config.Skip2BigramsChannels
-	for n := 0; n < config.Skip1TrigramsChannels; n++ {
-		fn := make([]ag.Node, len(fourgrams))
-		for i, fourgram := range bigrams {
-			fn[i] = p.convolutionProcessors[c+n].Forward(xs[fourgram[0]], xs[fourgram[1]], xs[fourgram[2]],
-				xs[fourgram[3]])[0]
-		}
-		out[c+n] = fn
-	}
+	p.encodeNgrams(fourgrams, c, 4, config.AttentionNet, out, xs...)
 	return out
 }
 
