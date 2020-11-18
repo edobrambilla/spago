@@ -39,12 +39,12 @@ func NewPradoClassifier(config ClassifierConfig) *Classifier {
 }
 
 type ClassifierProcessor struct {
-	*linear.Processor
+	*stack.Processor
 }
 
 func (m *Classifier) NewProc(g *ag.Graph) nn.Processor {
 	return &ClassifierProcessor{
-		Processor: m.Model.NewProc(g).(*linear.Processor),
+		Processor: m.Model.NewProc(g).(*stack.Processor),
 	}
 }
 
