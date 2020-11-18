@@ -35,7 +35,7 @@ type FeatureNet struct {
 	convolutionModels []*convolution.Model
 }
 
-func New(config FeatureNetConfig) *FeatureNet {
+func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	nChannels := config.UnigramsChannels + config.BigramsChannels + config.TrigramsChannels + config.FourgramsChannels +
 		config.FivegramsChannels + config.Skip1BigramsChannels + config.Skip1TrigramsChannels +
 		config.Skip2BigramsChannels
