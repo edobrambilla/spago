@@ -73,8 +73,7 @@ type Model struct {
 	Classifier   *Classifier
 }
 
-// NewDefaultBERT returns a new model based on the original BERT architecture.
-func NewDefaultBERT(config Config, embeddingsStoragePath string) *Model {
+func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 	nChannels := config.UnigramsChannels + config.BigramsChannels + config.TrigramsChannels + config.FourgramsChannels +
 		config.FivegramsChannels + config.Skip1BigramsChannels + config.Skip1TrigramsChannels +
 		config.Skip2BigramsChannels
@@ -185,6 +184,12 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 		TextEncoder:  m.TextEncoder.NewProc(g).(*TextEncoderProcessor),
 		Classifier:   m.Classifier.NewProc(g).(*ClassifierProcessor),
 	}
+}
+
+func (p *Processor) Classify(tokens []string) []ag.Node {
+	e := p.Embeddings.EmbedSequence(tokens)
+	encodedSequence := p.Encoder.Encode(e)
+	return encodedSequence
 }
 
 func (p *Processor) Forward(_ ...ag.Node) []ag.Node {
