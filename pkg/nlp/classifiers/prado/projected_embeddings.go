@@ -80,7 +80,11 @@ func (p *EmbeddingsProcessor) EmbedSequence(words []string) []ag.Node {
 	wordEmbeddings := p.getWordEmbeddings(words)
 	sequenceIndex := 0
 	for i := 0; i < len(words); i++ {
-		encoded[i] = wordEmbeddings[i]
+		if wordEmbeddings[i] != nil {
+			encoded[i] = wordEmbeddings[i]
+		} else {
+			encoded[i] = p.unknownEmbedding
+		}
 		if words[i] == wordpiecetokenizer.DefaultSequenceSeparator {
 			sequenceIndex++
 		}
