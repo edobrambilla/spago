@@ -32,14 +32,14 @@ func NewPradoEmbeddings(config EmbeddingsConfig) *Embeddings {
 	return &Embeddings{
 		EmbeddingsConfig: config,
 		Word: embeddings.New(embeddings.Config{
-			Size:       config.Size,
+			Size:       config.ProjectionSize, //embeddings into storage
 			DBPath:     config.WordsMapFilename,
 			ReadOnly:   true,
 			ForceNewDB: config.DeletePreEmbeddings,
 		}),
 		Projection: hashing.New(
-			config.ProjectionSize,
-			config.Size,
+			config.Size,           //input size
+			config.ProjectionSize, // output (projection) vectors size. These are the embeddings
 			config.ProjectionArity),
 	}
 }

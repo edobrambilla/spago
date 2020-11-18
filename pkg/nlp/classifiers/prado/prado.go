@@ -31,6 +31,7 @@ type Config struct {
 	EncodingActivation    string            `json:"hidden_act"`
 	ConvActivation        string            `json:"conv_act"`
 	ConvSize              int               `json:"conv_size"`
+	InputSize             int               `json:"input_size"`
 	ProjectionSize        int               `json:"projection_sise"`
 	ProjectionArity       int               `json:"projection_arity"`
 	EncodingSize          int               `json:"encoding_size"`
@@ -90,7 +91,7 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 		Vocabulary: nil,
 		Embeddings: &Embeddings{
 			EmbeddingsConfig: EmbeddingsConfig{
-				Size:                0,
+				Size:                config.InputSize,
 				ProjectionSize:      config.ProjectionSize,
 				ProjectionArity:     3,
 				WordsMapFilename:    embeddingsStoragePath,
@@ -98,7 +99,7 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 			},
 			Word: &embeddings.Model{
 				Config: embeddings.Config{
-					Size:             0,
+					Size:             config.ProjectionSize,
 					UseZeroEmbedding: false,
 					DBPath:           embeddingsStoragePath,
 					ReadOnly:         false,
