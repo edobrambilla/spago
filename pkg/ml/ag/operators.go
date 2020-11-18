@@ -5,6 +5,8 @@
 package ag
 
 import (
+	"errors"
+	"fmt"
 	"github.com/nlpodyssey/spago/pkg/ml/ag/fn"
 	"reflect"
 )
@@ -127,6 +129,21 @@ var opNameToMethodName = map[OpName]string{
 	OpReduceMean:  "ReduceMean",
 	OpConcat:      "Concat",
 	OpStack:       "Stack",
+}
+
+var strToOpName = func() map[string]OpName {
+	invMap := make(map[string]OpName)
+	for k, v := range opNameToMethodName {
+		invMap[v] = k
+	}
+	return invMap
+}()
+
+func GetOpName(str string) (OpName, error) {
+	if value, ok := strToOpName[str]; ok {
+		return value, nil
+	}
+	return -1, errors.New(fmt.Sprintf("ag: unknown operator %s", str))
 }
 
 // Invoke

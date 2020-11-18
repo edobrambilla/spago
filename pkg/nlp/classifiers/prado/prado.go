@@ -28,8 +28,8 @@ var (
 )
 
 type Config struct {
-	HiddenAct             string            `json:"hidden_act"`
-	ConvAct               string            `json:"conv_act"`
+	EncodingActivation    string            `json:"hidden_act"`
+	ConvActivation        string            `json:"conv_act"`
 	ConvSize              int               `json:"conv_size"`
 	ProjectionSize        int               `json:"projection_sise"`
 	ProjectionArity       int               `json:"projection_arity"`
@@ -46,6 +46,14 @@ type Config struct {
 	TypeVocabSize         int               `json:"type_vocab_size"`
 	VocabSize             int               `json:"vocab_size"`
 	Id2Label              map[string]string `json:"id2label"`
+}
+
+func mustGetOpName(str string) ag.OpName {
+	if value, err := ag.GetOpName(str); err == nil {
+		return value
+	} else {
+		panic(err)
+	}
 }
 
 func LoadConfig(file string) (Config, error) {
@@ -100,6 +108,13 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 				ZeroEmbedding:  &nn.Param{},
 			},
 		},
+		Encoder: &Encoder{
+			EncoderConfig: EncoderConfig{
+				InputSize:   config.ProjectionSize,
+				EncodedSize: config.EncodingSize,
+				Activation:  mustGetOpName(config.EncodingActivation),
+			},
+		},
 		AttentionNet: &FeatureNet{
 			config: FeatureNetConfig{
 				EncodingSize:          config.EncodingSize,
@@ -128,13 +143,6 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 				Skip1TrigramsChannels: config.Skip1TrigramsChannels,
 				AttentionNet:          false,
 				OutputSize:            config.ConvSize,
-			},
-		},
-		Encoder: &Encoder{
-			EncoderConfig: EncoderConfig{
-				InputSize:   config.ProjectionSize,
-				EncodedSize: config.EncodingSize,
-				Activation:  ag.OpIdentity,
 			},
 		},
 		TextEncoder: &TextEncoder{},
