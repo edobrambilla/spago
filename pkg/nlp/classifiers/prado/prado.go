@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
-	"github.com/nlpodyssey/spago/pkg/nlp/embeddings"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
 	"log"
 	"os"
@@ -89,64 +88,45 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 	return &Model{
 		Config:     config,
 		Vocabulary: nil,
-		Embeddings: &Embeddings{
-			EmbeddingsConfig: EmbeddingsConfig{
-				Size:                config.InputSize,
-				ProjectionSize:      config.ProjectionSize,
-				ProjectionArity:     3,
-				WordsMapFilename:    embeddingsStoragePath,
-				DeletePreEmbeddings: false,
-			},
-			Word: &embeddings.Model{
-				Config: embeddings.Config{
-					Size:             config.ProjectionSize,
-					UseZeroEmbedding: false,
-					DBPath:           embeddingsStoragePath,
-					ReadOnly:         false,
-					ForceNewDB:       false,
-				},
-				UsedEmbeddings: nil,
-				ZeroEmbedding:  &nn.Param{},
-			},
-		},
-		Encoder: &Encoder{
-			EncoderConfig: EncoderConfig{
-				InputSize:   config.ProjectionSize,
-				EncodedSize: config.EncodingSize,
-				Activation:  mustGetOpName(config.EncodingActivation),
-			},
-		},
-		AttentionNet: &FeatureNet{
-			config: FeatureNetConfig{
-				EncodingSize:          config.EncodingSize,
-				UnigramsChannels:      config.UnigramsChannels,
-				BigramsChannels:       config.BigramsChannels,
-				TrigramsChannels:      config.TrigramsChannels,
-				FourgramsChannels:     config.FourgramsChannels,
-				FivegramsChannels:     config.FivegramsChannels,
-				Skip1BigramsChannels:  config.Skip1BigramsChannels,
-				Skip2BigramsChannels:  config.Skip2BigramsChannels,
-				Skip1TrigramsChannels: config.Skip1TrigramsChannels,
-				AttentionNet:          true,
-				OutputSize:            config.ConvSize,
-			},
-		},
-		FeatureNet: &FeatureNet{
-			config: FeatureNetConfig{
-				EncodingSize:          config.EncodingSize,
-				UnigramsChannels:      config.UnigramsChannels,
-				BigramsChannels:       config.BigramsChannels,
-				TrigramsChannels:      config.TrigramsChannels,
-				FourgramsChannels:     config.FourgramsChannels,
-				FivegramsChannels:     config.FivegramsChannels,
-				Skip1BigramsChannels:  config.Skip1BigramsChannels,
-				Skip2BigramsChannels:  config.Skip2BigramsChannels,
-				Skip1TrigramsChannels: config.Skip1TrigramsChannels,
-				AttentionNet:          false,
-				OutputSize:            config.ConvSize,
-			},
-		},
-		TextEncoder: &TextEncoder{},
+		Embeddings: NewPradoEmbeddings(EmbeddingsConfig{
+			Size:                config.InputSize,
+			ProjectionSize:      config.ProjectionSize,
+			ProjectionArity:     3,
+			WordsMapFilename:    embeddingsStoragePath,
+			DeletePreEmbeddings: true,
+		}),
+		Encoder: NewPradoEncoder(EncoderConfig{
+			InputSize:   config.ProjectionSize,
+			EncodedSize: config.EncodingSize,
+			Activation:  mustGetOpName(config.EncodingActivation),
+		}),
+		AttentionNet: NewFeatureNet(FeatureNetConfig{
+			EncodingSize:          config.EncodingSize,
+			UnigramsChannels:      config.UnigramsChannels,
+			BigramsChannels:       config.BigramsChannels,
+			TrigramsChannels:      config.TrigramsChannels,
+			FourgramsChannels:     config.FourgramsChannels,
+			FivegramsChannels:     config.FivegramsChannels,
+			Skip1BigramsChannels:  config.Skip1BigramsChannels,
+			Skip2BigramsChannels:  config.Skip2BigramsChannels,
+			Skip1TrigramsChannels: config.Skip1TrigramsChannels,
+			AttentionNet:          true,
+			OutputSize:            config.ConvSize,
+		}),
+		FeatureNet: NewFeatureNet(FeatureNetConfig{
+			EncodingSize:          config.EncodingSize,
+			UnigramsChannels:      config.UnigramsChannels,
+			BigramsChannels:       config.BigramsChannels,
+			TrigramsChannels:      config.TrigramsChannels,
+			FourgramsChannels:     config.FourgramsChannels,
+			FivegramsChannels:     config.FivegramsChannels,
+			Skip1BigramsChannels:  config.Skip1BigramsChannels,
+			Skip2BigramsChannels:  config.Skip2BigramsChannels,
+			Skip1TrigramsChannels: config.Skip1TrigramsChannels,
+			AttentionNet:          false,
+			OutputSize:            config.ConvSize,
+		}),
+		TextEncoder: NewPradoTextEncoder(),
 		Classifier: NewPradoClassifier(ClassifierConfig{
 			TextEncodingSize: nChannels * config.ConvSize,
 			Labels: func(x map[string]string) []string {
