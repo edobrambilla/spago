@@ -34,7 +34,7 @@ func NewPradoEmbeddings(config EmbeddingsConfig) *Embeddings {
 		Word: embeddings.New(embeddings.Config{
 			Size:       config.ProjectionSize, //embeddings into storage
 			DBPath:     config.WordsMapFilename,
-			ReadOnly:   true,
+			ReadOnly:   false,
 			ForceNewDB: config.DeletePreEmbeddings,
 		}),
 		Projection: hashing.New(
