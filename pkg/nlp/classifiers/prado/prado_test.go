@@ -6,6 +6,7 @@ package prado
 
 import (
 	"github.com/nlpodyssey/spago/pkg/mat"
+	"github.com/nlpodyssey/spago/pkg/mat/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
 	"math"
@@ -17,6 +18,7 @@ func TestModel_Forward(t *testing.T) {
 	v := getVocabulary()
 	vocabularyCodes := getHashedVocabulary(v)
 	model := newTestModel()
+	model.InitPradoParameters(rand.NewLockedRand(743))
 	model.Embeddings.SetProjectedEmbeddings(vocabularyCodes)
 	y := model.NewProc(g).(*Processor).Classify([]string{"the", "big", "data", "center"})
 
@@ -54,7 +56,7 @@ func newTestModel() *Model {
 		TrigramsChannels:      1,
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
-		Skip1BigramsChannels:  0,
+		Skip1BigramsChannels:  1,
 		Skip2BigramsChannels:  0,
 		Skip1TrigramsChannels: 0,
 		OutputSize:            0,

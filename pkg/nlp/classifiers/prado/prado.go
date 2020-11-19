@@ -6,8 +6,13 @@ package prado
 
 import (
 	"encoding/json"
+	"github.com/nlpodyssey/spago/pkg/mat/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
+	"github.com/nlpodyssey/spago/pkg/ml/initializers"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
+	"github.com/nlpodyssey/spago/pkg/ml/nn/activation"
+	"github.com/nlpodyssey/spago/pkg/ml/nn/convolution"
+	"github.com/nlpodyssey/spago/pkg/ml/nn/stack"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
 	"log"
 	"os"
@@ -146,6 +151,41 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 			Activation: ag.OpIdentity,
 		}),
 	}
+}
+
+func (m *Model) InitPradoParameters(rndGen *rand.LockedRand) {
+	initStacked(m.Encoder.Model, rndGen)
+	initStacked(m.Classifier.Model, rndGen)
+	initConvolution(m.FeatureNet.convolutionModels, rndGen)
+	initConvolution(m.AttentionNet.convolutionModels, rndGen)
+}
+
+// InitRandom initializes the model using the Xavier (Glorot) method.
+func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
+	for i := 0; i < len(model.Layers)-1; i += 2 {
+		layer := model.Layers[i]
+		nextLayer := model.Layers[i+1]
+		gain := 1.0
+		if nextLayer, ok := nextLayer.(*activation.Model); ok {
+			gain = initializers.Gain(nextLayer.Activation)
+		}
+		nn.ForEachParam(layer, func(param *nn.Param) {
+			if param.Type() == nn.Weights {
+				initializers.XavierUniform(param.Value(), gain, rndGen)
+			}
+		})
+	}
+}
+
+// InitCNN initializes the model using the Xavier (Glorot) method.
+func initConvolution(models []*convolution.Model, rndGen *rand.LockedRand) {
+	for i := 0; i < len(models); i++ {
+		for i := 0; i < len(models[i].K); i++ {
+			initializers.XavierUniform(models[i].K[i].Value(), initializers.Gain(models[i].Activation), rndGen)
+			initializers.XavierUniform(models[i].B[i].Value(), initializers.Gain(models[i].Activation), rndGen)
+		}
+	}
+
 }
 
 type Processor struct {
