@@ -19,6 +19,7 @@ var (
 type FeatureNetConfig struct {
 	EncodingSize          int
 	ConvSize              int
+	ConvActivation        string
 	UnigramsChannels      int
 	BigramsChannels       int
 	TrigramsChannels      int
@@ -43,105 +44,105 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c := 0
 	for n := 0; n < config.UnigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  1,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           nil,
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	c += config.UnigramsChannels
 	for n := 0; n < config.BigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  2,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           nil,
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	c += config.BigramsChannels
 	for n := 0; n < config.TrigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  3,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           nil,
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	c += config.TrigramsChannels
 	for n := 0; n < config.FourgramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  4,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           nil,
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	c += config.FourgramsChannels
 	for n := 0; n < config.FivegramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  4,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           nil,
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	c += config.FivegramsChannels
 	for n := 0; n < config.Skip1BigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  3,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           []int{1, 0, 1},
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	c += config.Skip1BigramsChannels
 	for n := 0; n < config.Skip2BigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  4,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           []int{1, 0, 0, 1},
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	c += config.Skip2BigramsChannels
 	for n := 0; n < config.Skip1TrigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    config.ConvSize, //todo calculate output
+			KernelSizeX:    config.ConvSize,
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
 			InputChannels:  4,
-			OutputChannels: 1, //todo calculate output
+			OutputChannels: 1,
 			Mask:           []int{1, 1, 0, 1},
-			Activation:     0,
+			Activation:     mustGetOpName(config.ConvActivation),
 		})
 	}
 	return &FeatureNet{
