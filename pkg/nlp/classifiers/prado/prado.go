@@ -117,6 +117,7 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 			Skip1TrigramsChannels: config.Skip1TrigramsChannels,
 			AttentionNet:          true,
 			ConvSize:              config.ConvSize,
+			ConvActivation:        config.ConvActivation,
 		}),
 		FeatureNet: NewFeatureNet(FeatureNetConfig{
 			EncodingSize:          config.EncodingSize,
@@ -130,6 +131,7 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 			Skip1TrigramsChannels: config.Skip1TrigramsChannels,
 			AttentionNet:          false,
 			ConvSize:              config.ConvSize,
+			ConvActivation:        config.ConvActivation,
 		}),
 		TextEncoder: NewPradoTextEncoder(),
 		Classifier: NewPradoClassifier(ClassifierConfig{

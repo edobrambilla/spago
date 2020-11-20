@@ -45,7 +45,7 @@ func getVocabulary() *vocabulary.Vocabulary {
 func newTestModel() *Model {
 	config := Config{
 		EncodingActivation:    "Identity",
-		ConvActivation:        "Identity",
+		ConvActivation:        "Tanh",
 		ConvSize:              4,
 		InputSize:             30,
 		ProjectionSize:        128,
