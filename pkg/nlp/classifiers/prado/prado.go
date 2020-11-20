@@ -181,10 +181,11 @@ func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
 
 // InitCNN initializes the model using the Xavier (Glorot) method.
 func initConvolution(models []*convolution.Model, rndGen *rand.LockedRand) {
-	for i := 0; i < len(models); i++ {
-		for i := 0; i < len(models[i].K); i++ {
-			initializers.XavierUniform(models[i].K[i].Value(), initializers.Gain(models[i].Activation), rndGen)
-			initializers.XavierUniform(models[i].B[i].Value(), initializers.Gain(models[i].Activation), rndGen)
+	for c := 0; c < len(models); c++ {
+		for i := 0; i < len(models[c].K); i++ {
+
+			initializers.XavierUniform(models[c].K[i].Value(), initializers.Gain(models[c].Activation), rndGen)
+			initializers.XavierUniform(models[c].B[i].Value(), initializers.Gain(models[c].Activation), rndGen)
 		}
 	}
 
