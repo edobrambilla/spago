@@ -116,7 +116,7 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 			Skip2BigramsChannels:  config.Skip2BigramsChannels,
 			Skip1TrigramsChannels: config.Skip1TrigramsChannels,
 			AttentionNet:          true,
-			OutputSize:            config.ConvSize,
+			ConvSize:              config.ConvSize,
 		}),
 		FeatureNet: NewFeatureNet(FeatureNetConfig{
 			EncodingSize:          config.EncodingSize,
@@ -129,11 +129,11 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 			Skip2BigramsChannels:  config.Skip2BigramsChannels,
 			Skip1TrigramsChannels: config.Skip1TrigramsChannels,
 			AttentionNet:          false,
-			OutputSize:            config.ConvSize,
+			ConvSize:              config.ConvSize,
 		}),
 		TextEncoder: NewPradoTextEncoder(),
 		Classifier: NewPradoClassifier(ClassifierConfig{
-			TextEncodingSize: nChannels * config.ConvSize,
+			TextEncodingSize: nChannels * (config.EncodingSize - config.ConvSize + 1),
 			Labels: func(x map[string]string) []string {
 				if len(x) == 0 {
 					return []string{"LABEL_0", "LABEL_1"} // assume binary classification by default
@@ -215,10 +215,13 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 	}
 }
 
-func (p *Processor) Classify(tokens []string) []ag.Node {
+func (p *Processor) Classify(tokens []string) ag.Node {
 	e := p.Embeddings.EmbedSequence(tokens)
 	encodedSequence := p.Encoder.Encode(e)
-	return encodedSequence
+	featureNetEncoding := p.FeatureNet.Encode(p.Model.(*Model).FeatureNet.config, encodedSequence...)
+	attentionNetEncoding := p.AttentionNet.Encode(p.Model.(*Model).FeatureNet.config, encodedSequence...)
+	textEncoding := p.TextEncoder.Encode(featureNetEncoding, attentionNetEncoding)
+	return textEncoding
 }
 
 func (p *Processor) Forward(_ ...ag.Node) []ag.Node {

@@ -18,6 +18,7 @@ var (
 
 type FeatureNetConfig struct {
 	EncodingSize          int
+	ConvSize              int
 	UnigramsChannels      int
 	BigramsChannels       int
 	TrigramsChannels      int
@@ -27,7 +28,6 @@ type FeatureNetConfig struct {
 	Skip2BigramsChannels  int
 	Skip1TrigramsChannels int
 	AttentionNet          bool
-	OutputSize            int
 }
 
 type FeatureNet struct {
@@ -43,7 +43,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c := 0
 	for n := 0; n < config.UnigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
@@ -56,7 +56,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c += config.UnigramsChannels
 	for n := 0; n < config.BigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
@@ -69,7 +69,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c += config.BigramsChannels
 	for n := 0; n < config.TrigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
@@ -82,7 +82,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c += config.TrigramsChannels
 	for n := 0; n < config.FourgramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
@@ -95,7 +95,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c += config.FourgramsChannels
 	for n := 0; n < config.FivegramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
@@ -108,7 +108,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c += config.FivegramsChannels
 	for n := 0; n < config.Skip1BigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
@@ -121,7 +121,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c += config.Skip1BigramsChannels
 	for n := 0; n < config.Skip2BigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
@@ -134,7 +134,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	c += config.Skip2BigramsChannels
 	for n := 0; n < config.Skip1TrigramsChannels; n++ {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
-			KernelSizeX:    4, //todo calculate output
+			KernelSizeX:    config.ConvSize, //todo calculate output
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
