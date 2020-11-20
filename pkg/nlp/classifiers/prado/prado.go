@@ -215,13 +215,14 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 	}
 }
 
-func (p *Processor) Classify(tokens []string) ag.Node {
+func (p *Processor) Classify(tokens []string) []ag.Node {
 	e := p.Embeddings.EmbedSequence(tokens)
 	encodedSequence := p.Encoder.Encode(e)
 	featureNetEncoding := p.FeatureNet.Encode(p.Model.(*Model).FeatureNet.config, encodedSequence...)
 	attentionNetEncoding := p.AttentionNet.Encode(p.Model.(*Model).FeatureNet.config, encodedSequence...)
 	textEncoding := p.TextEncoder.Encode(featureNetEncoding, attentionNetEncoding)
-	return textEncoding
+	output := p.Classifier.Forward(textEncoding)
+	return output
 }
 
 func (p *Processor) Forward(_ ...ag.Node) []ag.Node {
