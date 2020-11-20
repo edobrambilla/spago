@@ -46,7 +46,7 @@ func newTestModel() *Model {
 	config := Config{
 		EncodingActivation:    "Identity",
 		ConvActivation:        "Identity",
-		ConvSize:              0,
+		ConvSize:              4,
 		InputSize:             30,
 		ProjectionSize:        128,
 		ProjectionArity:       3,
@@ -59,10 +59,14 @@ func newTestModel() *Model {
 		Skip1BigramsChannels:  1,
 		Skip2BigramsChannels:  0,
 		Skip1TrigramsChannels: 0,
-		OutputSize:            0,
 		TypeVocabSize:         0,
-		VocabSize:             0,
-		Id2Label:              nil,
+		VocabSize:             5,
+		Id2Label: map[string]string{
+			"0": "Arts",
+			"1": "Sport",
+			"2": "Politics",
+			"3": "Crime",
+		},
 	}
 	return NewDefaultPrado(config, "path")
 }
