@@ -45,8 +45,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  1,
 			OutputChannels: 1, //todo calculate output
 			Mask:           nil,
@@ -58,8 +58,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  2,
 			OutputChannels: 1, //todo calculate output
 			Mask:           nil,
@@ -71,8 +71,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  3,
 			OutputChannels: 1, //todo calculate output
 			Mask:           nil,
@@ -84,8 +84,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  4,
 			OutputChannels: 1, //todo calculate output
 			Mask:           nil,
@@ -97,8 +97,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  4,
 			OutputChannels: 1, //todo calculate output
 			Mask:           nil,
@@ -110,8 +110,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  3,
 			OutputChannels: 1, //todo calculate output
 			Mask:           []int{1, 0, 1},
@@ -123,8 +123,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  4,
 			OutputChannels: 1, //todo calculate output
 			Mask:           []int{1, 0, 0, 1},
@@ -136,8 +136,8 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		convolutionModels[c+n] = convolution.New(convolution.Config{
 			KernelSizeX:    4, //todo calculate output
 			KernelSizeY:    1,
-			XStride:        0,
-			YStride:        0,
+			XStride:        1,
+			YStride:        1,
 			InputChannels:  4,
 			OutputChannels: 1, //todo calculate output
 			Mask:           []int{1, 1, 0, 1},
@@ -187,8 +187,8 @@ func (p *FeatureNetProcessor) calculateAttention(xs []ag.Node) []ag.Node {
 	return attention
 }
 
-func (p *FeatureNetProcessor) encodeNgrams(a [][]int, c int, ngramSize int, attentioNet bool, out [][]ag.Node, xs ...ag.Node) {
-	for n := 0; n < ngramSize; n++ {
+func (p *FeatureNetProcessor) encodeNgrams(a [][]int, c, ngramSize, channels int, attentioNet bool, out [][]ag.Node, xs ...ag.Node) {
+	for n := 0; n < channels; n++ {
 		fn := make([]ag.Node, len(a))
 		for i, ngram := range a {
 			switch ngramSize {
@@ -224,21 +224,21 @@ func (p *FeatureNetProcessor) Encode(config FeatureNetConfig, xs ...ag.Node) [][
 	fourgrams := data.GenerateNGrams(4, len(xs))
 	fivgrams := data.GenerateNGrams(5, len(xs))
 	c := 0
-	p.encodeNgrams(unigrams, c, 1, config.AttentionNet, out, xs...)
+	p.encodeNgrams(unigrams, c, 1, config.UnigramsChannels, config.AttentionNet, out, xs...)
 	c += config.UnigramsChannels
-	p.encodeNgrams(bigrams, c, 2, config.AttentionNet, out, xs...)
+	p.encodeNgrams(bigrams, c, 2, config.BigramsChannels, config.AttentionNet, out, xs...)
 	c += config.BigramsChannels
-	p.encodeNgrams(trigrams, c, 3, config.AttentionNet, out, xs...)
+	p.encodeNgrams(trigrams, c, 3, config.TrigramsChannels, config.AttentionNet, out, xs...)
 	c += config.TrigramsChannels
-	p.encodeNgrams(fourgrams, c, 4, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fourgrams, c, 4, config.FourgramsChannels, config.AttentionNet, out, xs...)
 	c += config.FourgramsChannels
-	p.encodeNgrams(fivgrams, c, 5, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fivgrams, c, 5, config.FivegramsChannels, config.AttentionNet, out, xs...)
 	c += config.FivegramsChannels
-	p.encodeNgrams(trigrams, c, 3, config.AttentionNet, out, xs...)
+	p.encodeNgrams(trigrams, c, 3, config.Skip1BigramsChannels, config.AttentionNet, out, xs...)
 	c += config.Skip1BigramsChannels
-	p.encodeNgrams(fourgrams, c, 4, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fourgrams, c, 4, config.Skip2BigramsChannels, config.AttentionNet, out, xs...)
 	c += config.Skip2BigramsChannels
-	p.encodeNgrams(fourgrams, c, 4, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fourgrams, c, 4, config.Skip1TrigramsChannels, config.AttentionNet, out, xs...)
 	return out
 }
 
