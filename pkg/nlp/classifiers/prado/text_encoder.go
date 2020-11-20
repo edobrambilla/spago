@@ -36,11 +36,11 @@ func (m *TextEncoder) NewProc(g *ag.Graph) nn.Processor {
 }
 
 func (p *TextEncoderProcessor) Encode(projectedFeatures [][]ag.Node, attentionFeatures [][]ag.Node) ag.Node {
-	e := make([]ag.Node, len(projectedFeatures[0]))
-	for channel, projectedFeatures := range projectedFeatures {
-		en := projectedFeatures[0]
-		for i := 1; i < len(projectedFeatures); i++ {
-			en = p.Graph.Add(en, p.Graph.Prod(projectedFeatures[i], attentionFeatures[channel][i]))
+	e := make([]ag.Node, len(projectedFeatures))
+	for channel, projectedFeature := range projectedFeatures {
+		en := projectedFeature[0]
+		for i := 1; i < len(projectedFeature); i++ {
+			en = p.Graph.Add(en, p.Graph.Prod(projectedFeature[i], attentionFeatures[channel][i]))
 		}
 		e[channel] = en
 	}
