@@ -64,10 +64,12 @@ func newTestModel() *prado.Model {
 		TypeVocabSize:         0,
 		VocabSize:             5,
 		Id2Label: map[string]string{
-			"0": "Arts",
-			"1": "Sport",
-			"2": "Politics",
-			"3": "Crime",
+			"01000000": "01000000",
+			"02000000": "01000000",
+			"03000000": "01000000",
+			"04000000": "01000000",
+			"05000000": "01000000",
+			"06000000": "01000000",
 		},
 	}
 	return prado.NewDefaultPrado(config, "path")
