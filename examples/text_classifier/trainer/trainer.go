@@ -10,6 +10,8 @@ import (
 	"github.com/nlpodyssey/spago/pkg/mat/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd"
 	"github.com/nlpodyssey/spago/pkg/nlp/classifiers/prado"
+	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers"
+	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers/wordpiecetokenizer"
 	"io"
 	"os"
 )
@@ -47,12 +49,20 @@ func (t *Trainer) Train() {
 		//t.trainPassage(text)
 		e := GetExample(text)
 		println(e.Category)
+		tokenized := t.tokenize(e.Title)
+		println(tokenized)
 		t.optimizer.IncBatch()
 		t.optimizer.IncExample()
 		t.optimizer.Optimize()
 
 		t.countLine++
 	})
+}
+
+func (t *Trainer) tokenize(text string) []string {
+	tokenizer := wordpiecetokenizer.New(t.model.Vocabulary)
+	tokenized := append(tokenizers.GetStrings(tokenizer.Tokenize(text)), wordpiecetokenizer.DefaultSequenceSeparator)
+	return append([]string{wordpiecetokenizer.DefaultClassToken}, tokenized...)
 }
 
 func (t *Trainer) forEachLine(callback func(i int, line string)) (err error) {
