@@ -81,11 +81,21 @@ func (t *Trainer) GetTokenizedExample(e Example) []string {
 	return out
 }
 
+func (t *Trainer) padTokens(tokens []string, n int) []string {
+	length := len(tokens)
+
+	for i := 0; i < n-length; i++ {
+		tokens = append(tokens, "<EOS>")
+	}
+	return tokens
+}
+
 func (t *Trainer) GetVocabulary() *vocabulary.Vocabulary {
 	out := vocabulary.New([]string{})
 	err := t.forEachLine(func(i int, text string) {
 		e := GetExample(text)
 		tokenizedExample := t.GetTokenizedExample(e)
+		tokenizedExample = t.padTokens(tokenizedExample, 5)
 		for _, word := range tokenizedExample {
 			out.Add(word)
 		}
@@ -102,10 +112,13 @@ func (t *Trainer) trainBatches(onExample func()) {
 		//t.trainPassage(text)
 		e := GetExample(text)
 		tokenizedExample := t.GetTokenizedExample(e)
-		t.curLoss = t.learn(i, tokenizedExample, t.labelsMap[e.Category])
-		t.optimizer.IncBatch()
-		t.optimizer.IncExample()
-		t.optimizer.Optimize()
+		if len(tokenizedExample) > 0 {
+			tokenizedExample = t.padTokens(tokenizedExample, 5)
+			t.curLoss = t.learn(i, tokenizedExample, t.labelsMap[e.Category])
+			t.optimizer.IncBatch()
+			t.optimizer.IncExample()
+			t.optimizer.Optimize()
+		}
 		onExample()
 	})
 	if err != nil && err != io.EOF {
