@@ -23,11 +23,15 @@ func main() {
 	go func() { log.Println(http.ListenAndServe("localhost:6060", nil)) }()
 
 	modelPath := os.Args[1]
-	var datasetPath string
+	var trainingPath string
+	var testPath string
 	if len(os.Args) > 2 {
-		datasetPath = os.Args[2]
+		trainingPath = os.Args[2]
 	} else {
-		panic("Undefined corpus path")
+		panic("Undefined training corpus path")
+	}
+	if len(os.Args) > 3 {
+		testPath = os.Args[3]
 	}
 	model := newTestModel()
 	updater := adam.New(adam.NewDefaultConfig())
@@ -37,8 +41,18 @@ func main() {
 		BatchSize:        1,
 		Epochs:           2,
 		GradientClipping: 0,
-		TrainCorpusPath:  datasetPath,
+		TrainCorpusPath:  trainingPath,
+		EvalCorpusPath:   testPath,
 		ModelPath:        modelPath,
+		IncludeBody:      false,
+		IncludeTitle:     true,
+		LabelsMap: map[string]int{
+			"01000000": 0,
+			"02000000": 1,
+			"03000000": 2,
+			"04000000": 3,
+			"05000000": 4,
+			"06000000": 5},
 	}
 	t := trainer.NewTrainer(model, config, optimizer)
 	//get vocabulary

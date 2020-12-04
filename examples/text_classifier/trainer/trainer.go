@@ -14,8 +14,6 @@ import (
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd"
 	"github.com/nlpodyssey/spago/pkg/nlp/classifiers/prado"
-	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers"
-	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers/basetokenizer"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
 	"github.com/nlpodyssey/spago/pkg/utils"
 	"io"
@@ -28,7 +26,11 @@ type TrainingConfig struct {
 	Epochs           int
 	GradientClipping float64
 	TrainCorpusPath  string
+	EvalCorpusPath   string
 	ModelPath        string
+	IncludeTitle     bool
+	IncludeBody      bool
+	LabelsMap        map[string]int
 }
 
 type Trainer struct {
@@ -41,9 +43,6 @@ type Trainer struct {
 	countLine     int
 	curLoss       float64
 	curEpoch      int
-	includeTitle  bool
-	includeBody   bool
-	labelsMap     map[string]int
 }
 
 func NewTrainer(model *prado.Model, config TrainingConfig, optimizer *gd.GradientDescent) *Trainer {
@@ -52,50 +51,15 @@ func NewTrainer(model *prado.Model, config TrainingConfig, optimizer *gd.Gradien
 		randGen:        rand.NewLockedRand(config.Seed),
 		optimizer:      optimizer,
 		model:          model,
-		includeBody:    false,
-		includeTitle:   true,
-		labelsMap: map[string]int{
-			"01000000": 0,
-			"02000000": 1,
-			"03000000": 2,
-			"04000000": 3,
-			"05000000": 4,
-			"06000000": 5},
 	}
-}
-
-func (t *Trainer) GetTokenizedExample(e Example) []string {
-	out := []string{}
-	if t.includeTitle {
-		tokenized := t.tokenize(e.Title)
-		if len(tokenized) > 0 {
-			out = append(out, tokenized...)
-		}
-	}
-	if t.includeBody {
-		tokenized := t.tokenize(e.Title)
-		if len(tokenized) > 0 {
-			out = append(out, tokenized...)
-		}
-	}
-	return out
-}
-
-func (t *Trainer) padTokens(tokens []string, n int) []string {
-	length := len(tokens)
-
-	for i := 0; i < n-length; i++ {
-		tokens = append(tokens, "<EOS>")
-	}
-	return tokens
 }
 
 func (t *Trainer) GetVocabulary() *vocabulary.Vocabulary {
 	out := vocabulary.New([]string{})
 	err := t.forEachLine(func(i int, text string) {
 		e := GetExample(text)
-		tokenizedExample := t.GetTokenizedExample(e)
-		tokenizedExample = t.padTokens(tokenizedExample, 5)
+		tokenizedExample := GetTokenizedExample(e, t.TrainingConfig.IncludeTitle, t.TrainingConfig.IncludeBody)
+		tokenizedExample = PadTokens(tokenizedExample, 5)
 		for _, word := range tokenizedExample {
 			out.Add(word)
 		}
@@ -111,10 +75,10 @@ func (t *Trainer) trainBatches(onExample func()) {
 	err := t.forEachLine(func(i int, text string) {
 		//t.trainPassage(text)
 		e := GetExample(text)
-		tokenizedExample := t.GetTokenizedExample(e)
+		tokenizedExample := GetTokenizedExample(e, t.TrainingConfig.IncludeTitle, t.TrainingConfig.IncludeBody)
 		if len(tokenizedExample) > 0 {
-			tokenizedExample = t.padTokens(tokenizedExample, 5)
-			t.curLoss = t.learn(i, tokenizedExample, t.labelsMap[e.Category])
+			tokenizedExample = PadTokens(tokenizedExample, 5)
+			t.curLoss = t.learn(i, tokenizedExample, t.TrainingConfig.LabelsMap[e.Category])
 			t.optimizer.IncBatch()
 			t.optimizer.IncExample()
 			t.optimizer.Optimize()
@@ -134,11 +98,6 @@ func (t *Trainer) learn(_ int, tokenizedExample []string, label int) float64 {
 	loss := g.Div(losses.CrossEntropy(g, y, label), g.NewScalar(1.0))
 	g.Backward(loss)
 	return loss.ScalarValue()
-}
-
-func (t *Trainer) tokenize(text string) []string {
-	tokenizer := basetokenizer.New()
-	return tokenizers.GetStrings(tokenizer.Tokenize(text))
 }
 
 func (t *Trainer) forEachLine(callback func(i int, line string)) (err error) {
@@ -203,4 +162,6 @@ func (t *Trainer) trainEpoch() {
 	uip.Start() // start bar rendering
 	defer uip.Stop()
 	t.trainBatches(func() { bar.Incr() })
+	precision := NewEvaluator(t.model, t.TrainingConfig).Evaluate().Precision()
+	fmt.Printf("Accuracy: %.2f\n", 100*precision)
 }
