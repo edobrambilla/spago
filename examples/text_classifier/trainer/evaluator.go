@@ -57,12 +57,15 @@ func (e *Evaluator) Evaluate() *stats.ClassMetrics {
 		//t.trainPassage(text)
 		example := GetExample(text)
 		tokenizedExample := GetTokenizedExample(example, e.includeTitle, e.includeBody)
-		if e.Predict(tokenizedExample) == e.labelsMap[example.Category] {
-			counter.IncTruePos()
-		} else {
-			counter.IncFalsePos()
+		if len(tokenizedExample) > 0 {
+			tokenizedExample = PadTokens(tokenizedExample, 5)
+			if e.Predict(tokenizedExample) == e.labelsMap[example.Category] {
+				counter.IncTruePos()
+			} else {
+				counter.IncFalsePos()
+			}
+			bar.Incr()
 		}
-		bar.Incr()
 	})
 	if err != nil && err != io.EOF {
 		fmt.Printf(" > Failed with error: %v\n", err)
