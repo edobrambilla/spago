@@ -72,7 +72,7 @@ func (m *Embeddings) NewProc(g *ag.Graph) nn.Processor {
 		},
 		model:            m,
 		wordsLayer:       m.Word.NewProc(g).(*embeddings.Processor),
-		unknownEmbedding: g.NewWrap(m.Word.GetEmbedding(wordpiecetokenizer.DefaultUnknownToken)),
+		unknownEmbedding: g.NewWrap(g.NewVariable(m.Projection.GetHash(mat.NewInitDense(m.Size, 1, -1.0)), false)),
 	}
 }
 
