@@ -32,10 +32,11 @@ func NewPradoEmbeddings(config EmbeddingsConfig) *Embeddings {
 	return &Embeddings{
 		EmbeddingsConfig: config,
 		Word: embeddings.New(embeddings.Config{
-			Size:       config.ProjectionSize, //embeddings into storage
-			DBPath:     config.WordsMapFilename,
-			ReadOnly:   false,
-			ForceNewDB: config.DeletePreEmbeddings,
+			Size:             config.ProjectionSize, //embeddings into storage
+			DBPath:           config.WordsMapFilename,
+			ReadOnly:         false,
+			ForceNewDB:       config.DeletePreEmbeddings,
+			UseZeroEmbedding: false,
 		}),
 		Projection: hashing.New(
 			config.Size,           //input size
