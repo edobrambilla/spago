@@ -7,6 +7,7 @@ package main
 import (
 	"github.com/nlpodyssey/spago/examples/text_classifier/trainer"
 	"github.com/nlpodyssey/spago/pkg/mat"
+	"github.com/nlpodyssey/spago/pkg/mat/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd/adam"
@@ -34,6 +35,7 @@ func main() {
 		testPath = os.Args[3]
 	}
 	model := newTestModel()
+	model.InitPradoParameters(rand.NewLockedRand(743))
 	updater := adam.New(adam.NewDefaultConfig())
 	optimizer := gd.NewOptimizer(updater, nn.NewDefaultParamsIterator(model))
 	config := trainer.TrainingConfig{
