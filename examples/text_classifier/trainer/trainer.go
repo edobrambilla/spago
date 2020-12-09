@@ -40,7 +40,7 @@ type Trainer struct {
 	bestLoss      float64
 	lastBatchLoss float64
 	model         *prado.Model
-	countLine     int
+	countLines    int
 	curLoss       float64
 	curEpoch      int
 }
@@ -63,7 +63,7 @@ func (t *Trainer) GetVocabulary() *vocabulary.Vocabulary {
 		for _, word := range tokenizedExample {
 			out.Add(word)
 		}
-		t.countLine++
+		t.countLines++
 	})
 	if err != nil && err != io.EOF {
 		fmt.Printf(" > Failed with error: %v\n", err)
@@ -158,10 +158,10 @@ func (t *Trainer) Enjoy() {
 
 func (t *Trainer) trainEpoch() {
 	uip := uiprogress.New()
-	bar := t.newTrainBar(uip, t.countLine)
+	bar := t.newTrainBar(uip, t.countLines)
 	uip.Start() // start bar rendering
-	defer uip.Stop()
 	t.trainBatches(func() { bar.Incr() })
-	precision := NewEvaluator(t.model, t.TrainingConfig).Evaluate().Precision()
+	uip.Stop()
+	precision := NewEvaluator(t.model, t.TrainingConfig).Evaluate(t.curEpoch).Precision()
 	fmt.Printf("Accuracy: %.2f\n", 100*precision)
 }

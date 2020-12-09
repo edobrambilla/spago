@@ -22,6 +22,7 @@ type Evaluator struct {
 	evalCorpusPath string
 	includeTitle   bool
 	includeBody    bool
+	countLines     int
 	labelsMap      map[string]int
 }
 
@@ -32,6 +33,12 @@ func NewEvaluator(model nn.Model, t TrainingConfig) *Evaluator {
 		includeTitle:   t.IncludeTitle,
 		includeBody:    t.IncludeBody,
 		labelsMap:      t.LabelsMap,
+	}
+	err := e.forEachLine(func(i int, text string) {
+		e.countLines++
+	})
+	if err != nil && err != io.EOF {
+		fmt.Printf(" > Failed with error: %v\n", err)
 	}
 	return e
 }
@@ -46,11 +53,10 @@ func (e *Evaluator) Predict(tokenizedExample []string) int {
 	return f64utils.ArgMax(y.Value().Data())
 }
 
-func (e *Evaluator) Evaluate() *stats.ClassMetrics {
+func (e *Evaluator) Evaluate(epoch int) *stats.ClassMetrics {
 	uip := uiprogress.New()
-	bar := newTestBar(uip, len(e.evalCorpusPath))
+	bar := e.newTestBar(uip, e.countLines, epoch)
 	uip.Start()
-	defer uip.Stop()
 
 	counter := stats.NewMetricCounter()
 	err := e.forEachLine(func(i int, text string) {
@@ -67,6 +73,7 @@ func (e *Evaluator) Evaluate() *stats.ClassMetrics {
 			bar.Incr()
 		}
 	})
+	uip.Stop()
 	if err != nil && err != io.EOF {
 		fmt.Printf(" > Failed with error: %v\n", err)
 	}
@@ -102,8 +109,11 @@ func (e *Evaluator) forEachLine(callback func(i int, line string)) (err error) {
 	return
 }
 
-func newTestBar(p *uiprogress.Progress, nexamples int) *uiprogress.Bar {
-	bar := p.AddBar(nexamples)
+func (e *Evaluator) newTestBar(progress *uiprogress.Progress, nexamples, curEpoch int) *uiprogress.Bar {
+	bar := progress.AddBar(nexamples)
 	bar.AppendCompleted().PrependElapsed()
+	bar.PrependFunc(func(b *uiprogress.Bar) string {
+		return fmt.Sprintf("Epoch: %d Evaluation", curEpoch)
+	})
 	return bar
 }
