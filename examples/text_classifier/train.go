@@ -41,7 +41,7 @@ func main() {
 	config := trainer.TrainingConfig{
 		Seed:             743,
 		BatchSize:        1,
-		Epochs:           2,
+		Epochs:           8,
 		GradientClipping: 0,
 		TrainCorpusPath:  trainingPath,
 		EvalCorpusPath:   testPath,
