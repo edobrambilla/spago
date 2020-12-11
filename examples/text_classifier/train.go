@@ -70,7 +70,7 @@ func main() {
 
 func newTestModel() *prado.Model {
 	config := prado.Config{
-		EncodingActivation:    "Identity",
+		EncodingActivation:    "Tanh",
 		ConvActivation:        "Tanh",
 		ConvSize:              4,
 		InputSize:             30,
