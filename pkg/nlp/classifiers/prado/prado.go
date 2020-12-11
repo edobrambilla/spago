@@ -222,7 +222,7 @@ func (p *Processor) Classify(tokens []string) []ag.Node {
 	e := p.Embeddings.EmbedSequence(tokens)
 	encodedSequence := p.Encoder.Encode(e)
 	featureNetEncoding := p.FeatureNet.Encode(p.Model.(*Model).FeatureNet.config, encodedSequence...)
-	attentionNetEncoding := p.AttentionNet.Encode(p.Model.(*Model).FeatureNet.config, encodedSequence...)
+	attentionNetEncoding := p.AttentionNet.Encode(p.Model.(*Model).AttentionNet.config, encodedSequence...)
 	textEncoding := p.TextEncoder.Encode(featureNetEncoding, attentionNetEncoding)
 	output := p.Classifier.Forward(textEncoding)
 	return output
