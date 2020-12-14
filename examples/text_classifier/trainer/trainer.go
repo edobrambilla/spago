@@ -93,9 +93,11 @@ func (t *Trainer) trainBatches(onExample func()) {
 // learn performs the backward respect to the cross-entropy loss, returned as scalar value
 func (t *Trainer) learn(_ int, tokenizedExample []string, label int) float64 {
 	g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)))
+	//g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)), ag.IncrementalForward(false), ag.ConcurrentComputations(true))
 	defer g.Clear()
 	y := t.model.NewProc(g).(*prado.Processor).Classify(tokenizedExample)[0]
 	loss := g.Div(losses.CrossEntropy(g, y, label), g.NewScalar(1.0))
+	//g.Forward()
 	g.Backward(loss)
 	return loss.ScalarValue()
 }
