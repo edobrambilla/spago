@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package lstmsc provides an implementation of LSTM enriched with a PolicyGradient
+// to enable Dynamic Skip Connections.
 package lstmsc
 
 import (
@@ -20,7 +22,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
-// LSTM enriched with a PolicyGradient to enable Dynamic Skip Connections.
+// Model contains the serializable parameters.
 type Model struct {
 	PolicyGradient *stack.Model
 	Lambda         float64
@@ -38,8 +40,8 @@ type Model struct {
 	BCand          *nn.Param `type:"biases"`
 }
 
-// New returns a new model.
-// lambda is the coefficient used in the equation λa + (1 − λ)b where 'a' is state[t-k] and 'b' is state[t-1].
+// New returns a new model with parameters initialized to zeros.
+// Lambda is the coefficient used in the equation λa + (1 − λ)b where 'a' is state[t-k] and 'b' is state[t-1].
 func New(in, out, k int, lambda float64, intermediate int) *Model {
 	var m Model
 	m.PolicyGradient = stack.New(
@@ -94,12 +96,14 @@ type Processor struct {
 	States         []*State
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+	g := ctx.Graph
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		States:         nil,
@@ -117,7 +121,7 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 		bCand:          g.NewWrap(m.BCand),
 		lambda:         g.NewScalar(m.Lambda),
 		negLambda:      g.NewScalar(1.0 - m.Lambda),
-		PolicyGradient: m.PolicyGradient.NewProc(g).(*stack.Processor),
+		PolicyGradient: m.PolicyGradient.NewProc(ctx).(*stack.Processor),
 	}
 }
 
@@ -128,11 +132,7 @@ func (p *Processor) SetInitialState(state *State) {
 	p.States = append(p.States, state)
 }
 
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	p.PolicyGradient.SetMode(mode)
-}
-
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	ys := make([]ag.Node, len(xs))
 	for i, x := range xs {

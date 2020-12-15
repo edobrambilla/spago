@@ -51,10 +51,10 @@ func LookupFromHuggingFace(searchQuery string) (string, error) {
 	}
 
 	dataStr := string(data)
-	startSubstr := "window.getModels = () => ["
+	startSubstr := "window.getAllModels = () => ["
 	idx := strings.Index(dataStr, startSubstr)
 	if idx < 0 {
-		return "", errors.New("getModels not found")
+		return "", errors.New("getAllModels not found")
 	}
 	idx += len(startSubstr) - 1
 	dataStr = dataStr[idx:]
@@ -65,9 +65,9 @@ func LookupFromHuggingFace(searchQuery string) (string, error) {
 }
 
 // ParseSearchResults parses search results json.
-func ParseSearchResults(dataJson []byte) ([]*ModelCard, error) {
+func ParseSearchResults(dataJSON []byte) ([]*ModelCard, error) {
 	var res []*ModelCard
-	if err := json.Unmarshal(dataJson, &res); err != nil {
+	if err := json.Unmarshal(dataJSON, &res); err != nil {
 		return nil, err
 	}
 	return res, nil

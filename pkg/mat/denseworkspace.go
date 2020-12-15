@@ -54,7 +54,7 @@ func GetDenseWorkspace(r, c int) *Dense {
 	return w
 }
 
-// GetDenseWorkspace returns a *Dense of size r×c and a data slice with a cap that is less than 2*r*c.
+// GetEmptyDenseWorkspace returns a *Dense of size r×c and a data slice with a cap that is less than 2*r*c.
 // The returned matrix is ready-to-use (with all the values set to zeros).
 func GetEmptyDenseWorkspace(r, c int) *Dense {
 	size := r * c
@@ -108,10 +108,6 @@ func bits(v uint64) byte {
 	v |= v >> 32
 	return tab64[((v-(v>>1))*0x07EDD5E59A4E28C2)>>58] - 1
 }
-
-const emptySize = 100000000
-
-var empty [emptySize]float64
 
 // zero zeros the given slice's elements.
 func zero(f []float64) {

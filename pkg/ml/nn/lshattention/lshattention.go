@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package lshattention provides an implementation of the LSH-Attention model, as
+// describe in `Reformer: The Efficient Transformer` by N. Kitaev, Ł. Kaiser, A. Levskaya
+// (https://arxiv.org/pdf/2001.04451.pdf).
 // TODO: Check compatibility with the LSH Attention implemented by Hugging Face:
 // TODO: https://huggingface.co/transformers/model_doc/reformer.html
 package lshattention
@@ -19,7 +22,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
-// LSH-Attention as in `Reformer: The Efficient Transformer` by N. Kitaev, Ł. Kaiser, A. Levskaya.
+// Model contains the serializable parameters.
 type Model struct {
 	Config
 	Query *linear.Model
@@ -35,6 +38,7 @@ type Config struct {
 	ScaleFactor float64
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(config Config) *Model {
 	return &Model{
 		Config: config,
@@ -58,18 +62,19 @@ type Processor struct {
 	Attention   *ContextProb
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 		scaleFactor: m.ScaleFactor,
-		query:       m.Query.NewProc(g).(*linear.Processor),
-		value:       m.Value.NewProc(g).(*linear.Processor),
-		r:           g.NewWrap(m.R),
+		query:       m.Query.NewProc(ctx).(*linear.Processor),
+		value:       m.Value.NewProc(ctx).(*linear.Processor),
+		r:           ctx.Graph.NewWrap(m.R),
 		Attention:   nil,
 	}
 }
@@ -122,6 +127,7 @@ func insertNode(m map[int]*IndexedNodes, node ag.Node, i, h int) {
 	element.index = append(element.index, i)
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	length := len(xs)
 	qs := p.query.Forward(xs...)

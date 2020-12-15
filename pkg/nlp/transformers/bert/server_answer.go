@@ -33,7 +33,7 @@ func (s *Server) QaHandler(w http.ResponseWriter, req *http.Request) {
 
 	result := s.answer(body.Question, body.Passage)
 	_, pretty := req.URL.Query()["pretty"]
-	response, err := result.Dump(pretty)
+	response, err := Dump(result, pretty)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -87,8 +87,7 @@ func (s *Server) answer(question string, passage string) *QuestionAnsweringRespo
 
 	g := ag.NewGraph()
 	defer g.Clear()
-	proc := s.model.NewProc(g).(*Processor)
-	proc.SetMode(nn.Inference)
+	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Inference}).(*Processor)
 	encoded := proc.Encode(tokenized)
 
 	passageStartIndex := len(origQuestionTokens) + 2 // +2 because of [CLS] and [SEP]

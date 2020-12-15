@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Reference: "Understanding and Improving Layer Normalization" by Jingjing Xu, Xu Sun, Zhiyuan Zhang, Guangxiang Zhao, Junyang Lin (2019).
+// (https://papers.nips.cc/paper/8689-understanding-and-improving-layer-normalization.pdf)
 package adanorm
 
 import (
@@ -14,12 +16,12 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
-// Reference: "Understanding and Improving Layer Normalization" by Jingjing Xu, Xu Sun, Zhiyuan Zhang, Guangxiang Zhao, Junyang Lin (2019).
-// (https://papers.nips.cc/paper/8689-understanding-and-improving-layer-normalization.pdf)
+// Model contains the scaling factor.
 type Model struct {
 	scale float64
 }
 
+// New returns a new model.
 func New(scale float64) *Model {
 	return &Model{scale: scale}
 }
@@ -32,22 +34,24 @@ type Processor struct {
 	c   ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+	g := ctx.Graph
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
-		eps: g.NewScalar(1e-10),
-		one: g.NewScalar(1.0),
-		k:   g.NewScalar(0.1),
-		c:   g.NewScalar(m.scale),
+		eps: g.Constant(1e-10),
+		one: g.Constant(1.0),
+		k:   g.Constant(0.1),
+		c:   g.Constant(m.scale),
 	}
-
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	g := p.Graph
 	meanVectors := p.Mean(xs)

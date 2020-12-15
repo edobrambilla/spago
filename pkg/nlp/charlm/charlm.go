@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// CharLM implements a character-level language model that uses a recurrent neural network as its backbone.
-// A fully connected softmax layer (a.k.a decoder) is placed on top of each recurrent hidden state to predict
-// the next character.
+// Package charlm provides an implementation of a character-level language model that uses a
+// recurrent neural network as its backbone.
+// A fully connected softmax layer (a.k.a decoder) is placed on top of each recurrent hidden
+// state to predict the next character.
 package charlm
 
 import (
@@ -26,6 +27,7 @@ const (
 type Model struct {
 	Config
 	Decoder    *linear.Model
+	Projection *linear.Model
 	RNN        nn.Model
 	Embeddings []*nn.Param `type:"weights"`
 	Vocabulary *vocabulary.Vocabulary
@@ -36,7 +38,7 @@ type Config struct {
 	VocabularySize    int
 	EmbeddingSize     int
 	HiddenSize        int
-	OutputSize        int    // TODO: is it always equal to the vocabulary size?
+	OutputSize        int    // use the projection layer when the output size is > 0
 	SequenceSeparator string // empty string is replaced with DefaultSequenceSeparator
 	UnknownToken      string // empty string is replaced with DefaultUnknownToken
 }
@@ -48,9 +50,23 @@ func New(config Config) *Model {
 	if config.UnknownToken == "" {
 		config.UnknownToken = DefaultUnknownToken
 	}
+
+	if config.OutputSize > 0 {
+		// use projection layer
+		return &Model{
+			Config:     config,
+			Decoder:    linear.New(config.OutputSize, config.VocabularySize),
+			Projection: linear.New(config.HiddenSize, config.OutputSize),
+			RNN:        lstm.New(config.EmbeddingSize, config.HiddenSize),
+			Embeddings: newEmptyEmbeddings(config.VocabularySize, config.EmbeddingSize),
+		}
+	}
+
+	// don't use projection layer
 	return &Model{
 		Config:     config,
-		Decoder:    linear.New(config.HiddenSize, config.OutputSize),
+		Decoder:    linear.New(config.HiddenSize, config.VocabularySize),
+		Projection: linear.New(config.HiddenSize, config.HiddenSize), // TODO: Find a way to set to nil?
 		RNN:        lstm.New(config.EmbeddingSize, config.HiddenSize),
 		Embeddings: newEmptyEmbeddings(config.VocabularySize, config.EmbeddingSize),
 	}
@@ -78,30 +94,32 @@ func Initialize(m *Model, rndGen *rand.LockedRand) {
 type Processor struct {
 	nn.BaseProcessor
 	Decoder          *linear.Processor
+	Projection       *linear.Processor
 	RNN              nn.Processor
 	usedEmbeddings   map[int]ag.Node
 	UnknownEmbedding ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	p := &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
-		Decoder:          m.Decoder.NewProc(g).(*linear.Processor),
-		RNN:              m.RNN.NewProc(g),
+		Decoder: m.Decoder.NewProc(ctx).(*linear.Processor),
+		Projection: func() *linear.Processor {
+			if m.Config.OutputSize > 0 {
+				return m.Projection.NewProc(ctx).(*linear.Processor)
+			}
+			return nil
+		}(),
+		RNN:              m.RNN.NewProc(ctx),
 		usedEmbeddings:   make(map[int]ag.Node),
-		UnknownEmbedding: g.NewWrap(m.Embeddings[m.Vocabulary.MustId(m.UnknownToken)]),
+		UnknownEmbedding: ctx.Graph.NewWrap(m.Embeddings[m.Vocabulary.MustID(m.UnknownToken)]),
 	}
 	return p
-}
-
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	nn.SetProcessingMode(mode, p.RNN, p.Decoder)
 }
 
 func (p *Processor) Predict(xs ...string) []ag.Node {
@@ -110,16 +128,24 @@ func (p *Processor) Predict(xs ...string) []ag.Node {
 	for i, x := range encoding {
 		p.Graph.IncTimeStep() // essential for truncated back-propagation
 		h := p.RNN.Forward(x)[0]
-		ys[i] = p.Decoder.Forward(h)[0]
+		proj := p.UseProjection(h)[0]
+		ys[i] = p.Decoder.Forward(proj)[0]
 	}
 	return ys
+}
+
+func (p *Processor) UseProjection(xs ...ag.Node) []ag.Node {
+	if p.Projection == nil {
+		return xs
+	}
+	return p.Projection.Forward(xs...)
 }
 
 func (p *Processor) GetEmbeddings(xs []string) []ag.Node {
 	model := p.Model.(*Model)
 	ys := make([]ag.Node, len(xs))
 	for i, item := range xs {
-		id, ok := model.Vocabulary.Id(item)
+		id, ok := model.Vocabulary.ID(item)
 		if !ok {
 			ys[i] = p.UnknownEmbedding
 			continue

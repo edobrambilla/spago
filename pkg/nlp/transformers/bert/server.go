@@ -4,11 +4,10 @@
 
 package bert
 
-//go:generate protoc --go_out=Mgrpc/service_config/service_config.proto=/internal/proto/grpc_service_config:.  --go-grpc_out=Mgrpc/service_config/service_config.proto=/internal/proto/grpc_service_config:. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative grpcapi/bert.proto
-
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/nlpodyssey/spago/pkg/webui/bertclassification"
 	"net/http"
 	"sort"
 
@@ -44,12 +43,13 @@ func NewServer(model *Model) *Server {
 func (s *Server) StartDefaultServer(address, grpcAddress, tlsCert, tlsKey string, tlsDisable bool) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/bert-qa-ui", bertqa.Handler)
+	mux.HandleFunc("/bert-classify-ui", bertclassification.Handler)
 	mux.HandleFunc("/discriminate", s.DiscriminateHandler)
 	mux.HandleFunc("/predict", s.PredictHandler)
 	mux.HandleFunc("/answer", s.QaHandler)
 	mux.HandleFunc("/tag", s.LabelerHandler)
 	mux.HandleFunc("/classify", s.ClassifyHandler)
-	mux.HandleFunc("/te", s.TextualEntailmentHandler)
+	mux.HandleFunc("/encode", s.SentenceEncoderHandler)
 
 	go httputils.RunHTTPServer(address, tlsDisable, tlsCert, tlsKey, mux)
 
@@ -59,7 +59,8 @@ func (s *Server) StartDefaultServer(address, grpcAddress, tlsCert, tlsKey string
 }
 
 type Body struct {
-	Text string `json:"text"`
+	Text  string `json:"text"`
+	Text2 string `json:"text2"`
 }
 
 type QABody struct {
@@ -97,20 +98,6 @@ type QuestionAnsweringResponse struct {
 	Took int64 `json:"took"`
 }
 
-func (r *QuestionAnsweringResponse) Dump(pretty bool) ([]byte, error) {
-	buf := bytes.NewBufferString("")
-	enc := json.NewEncoder(buf)
-	if pretty {
-		enc.SetIndent("", "    ")
-	}
-	enc.SetEscapeHTML(true)
-	err := enc.Encode(r)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
 const defaultMaxAnswerLength = 20     // TODO: from options
 const defaultMinConfidence = 0.1      // TODO: from options
 const defaultMaxCandidateLogits = 3.0 // TODO: from options
@@ -146,14 +133,14 @@ type Token struct {
 	Label string `json:"label"`
 }
 
-func (r *Response) Dump(pretty bool) ([]byte, error) {
+func Dump(value interface{}, pretty bool) ([]byte, error) {
 	buf := bytes.NewBufferString("")
 	enc := json.NewEncoder(buf)
 	if pretty {
 		enc.SetIndent("", "    ")
 	}
 	enc.SetEscapeHTML(true)
-	err := enc.Encode(r)
+	err := enc.Encode(value)
 	if err != nil {
 		return nil, err
 	}

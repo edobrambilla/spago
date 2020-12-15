@@ -32,7 +32,7 @@ func (s *Server) PredictHandler(w http.ResponseWriter, req *http.Request) {
 
 	result := s.predict(body.Text)
 	_, pretty := req.URL.Query()["pretty"]
-	response, err := result.Dump(pretty)
+	response, err := Dump(result, pretty)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -66,8 +66,7 @@ func (s *Server) predict(text string) *Response {
 
 	g := ag.NewGraph()
 	defer g.Clear()
-	proc := s.model.NewProc(g).(*Processor)
-	proc.SetMode(nn.Inference)
+	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Inference}).(*Processor)
 	encoded := proc.Encode(tokenized)
 
 	masked := make([]int, 0)
@@ -78,7 +77,7 @@ func (s *Server) predict(text string) *Response {
 	}
 
 	retTokens := make([]Token, 0)
-	for tokenId, prediction := range proc.PredictMasked(encoded, masked) {
+	for tokenID, prediction := range proc.PredictMasked(encoded, masked) {
 		bestPredictedWordIndex := f64utils.ArgMax(prediction.Value().Data())
 		word, ok := s.model.Vocabulary.Term(bestPredictedWordIndex)
 		if !ok {
@@ -87,8 +86,8 @@ func (s *Server) predict(text string) *Response {
 		label := DefaultPredictedLabel
 		retTokens = append(retTokens, Token{
 			Text:  word,
-			Start: origTokens[tokenId-1].Offsets.Start, // skip CLS
-			End:   origTokens[tokenId-1].Offsets.End,   // skip CLS
+			Start: origTokens[tokenID-1].Offsets.Start, // skip CLS
+			End:   origTokens[tokenID-1].Offsets.End,   // skip CLS
 			Label: label,
 		})
 	}

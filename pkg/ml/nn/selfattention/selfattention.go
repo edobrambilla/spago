@@ -16,7 +16,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
-// Self-Attention
+// Model contains the serializable parameters.
 type Model struct {
 	Config
 	Query *linear.Model
@@ -25,13 +25,15 @@ type Model struct {
 }
 
 type Config struct {
-	InputSize   int
-	QuerySize   int
-	KeySize     int
-	ValueSize   int
-	ScaleFactor float64
+	InputSize     int
+	QuerySize     int
+	KeySize       int
+	ValueSize     int
+	ScaleFactor   float64
+	UseCausalMask bool
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(config Config) *Model {
 	return &Model{
 		Config: config,
@@ -48,34 +50,52 @@ type ContextProb struct {
 
 type Processor struct {
 	nn.BaseProcessor
-	scaleFactor float64
-	query       *linear.Processor
-	key         *linear.Processor
-	value       *linear.Processor
-	Attention   *ContextProb
+	useCasualMask bool
+	scaleFactor   float64
+	query         *linear.Processor
+	key           *linear.Processor
+	value         *linear.Processor
+	Attention     *ContextProb
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
-		scaleFactor: m.ScaleFactor,
-		query:       m.Query.NewProc(g).(*linear.Processor),
-		key:         m.Key.NewProc(g).(*linear.Processor),
-		value:       m.Value.NewProc(g).(*linear.Processor),
-		Attention:   nil,
+		scaleFactor:   m.ScaleFactor,
+		useCasualMask: m.UseCausalMask,
+		query:         m.Query.NewProc(ctx).(*linear.Processor),
+		key:           m.Key.NewProc(ctx).(*linear.Processor),
+		value:         m.Value.NewProc(ctx).(*linear.Processor),
+		Attention:     nil,
 	}
 }
 
+// Forward performs the forward step for each input and returns the result.
+// It generates the queries, keys and values from the same input xs.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	qs := p.query.Forward(xs...)
 	ks := p.key.Forward(xs...)
 	vs := p.value.Forward(xs...)
-	context, prob := nn.ScaledDotProductAttention(p.Graph, qs, ks, vs, p.scaleFactor)
+	context, prob := nn.ScaledDotProductAttention(p.Graph, qs, ks, vs, p.scaleFactor, p.useCasualMask)
+	p.Attention = &ContextProb{
+		context: context,
+		prob:    prob,
+	}
+	return context
+}
+
+// ForwardQKV performs the forward step for each input and returns the result.
+func (p *Processor) ForwardQKV(qs []ag.Node, ks []ag.Node, vs []ag.Node) []ag.Node {
+	qsProj := p.query.Forward(qs...)
+	ksProj := p.key.Forward(ks...)
+	vsProj := p.value.Forward(vs...)
+	context, prob := nn.ScaledDotProductAttention(p.Graph, qsProj, ksProj, vsProj, p.scaleFactor, p.useCasualMask)
 	p.Attention = &ContextProb{
 		context: context,
 		prob:    prob,

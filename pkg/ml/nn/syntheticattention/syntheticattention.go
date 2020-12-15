@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This is an implementation of the Synthetic Attention described in:
+// Package syntheticattention provides an implementation of the Synthetic Attention described in:
 // "SYNTHESIZER: Rethinking Self-Attention in Transformer Models" by Tay et al., 2020.
 // (https://arxiv.org/pdf/2005.00743.pdf)
 package syntheticattention
@@ -21,6 +21,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	Config
 	FFN   *stack.Model
@@ -35,6 +36,7 @@ type Config struct {
 	MaxLength  int
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(config Config) *Model {
 	return &Model{
 		Config: config,
@@ -60,26 +62,23 @@ type Processor struct {
 	Attention *ContextProb
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
-		ffn:       m.FFN.NewProc(g).(*stack.Processor),
-		value:     m.Value.NewProc(g).(*linear.Processor),
-		w:         g.NewWrap(m.W),
+		ffn:       m.FFN.NewProc(ctx).(*stack.Processor),
+		value:     m.Value.NewProc(ctx).(*linear.Processor),
+		w:         ctx.Graph.NewWrap(m.W),
 		Attention: nil,
 	}
 }
 
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	nn.SetProcessingMode(mode, p.value, p.ffn)
-}
-
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	g := p.Graph
 	length := len(xs)

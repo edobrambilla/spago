@@ -5,7 +5,7 @@
 package f64utils
 
 import (
-	"github.com/nlpodyssey/spago/pkg/global"
+	"github.com/nlpodyssey/spago/pkg/mat/internal/asm/f64"
 	"gonum.org/v1/gonum/floats"
 	"math"
 	"strconv"
@@ -22,7 +22,7 @@ func Copy(in []float64) []float64 {
 	return out
 }
 
-// Fill the given slice's elements with value
+// FillFloatSlice fills the given slice's elements with value.
 func FillFloatSlice(slice []float64, value float64) {
 	for i := range slice {
 		slice[i] = value
@@ -109,6 +109,7 @@ func StrToFloat64Slice(str string) ([]float64, error) {
 	return data, nil
 }
 
+// SoftMax returns the results of the softmax function.
 func SoftMax(v []float64) (sm []float64) {
 	c := Max(v)
 	var sum float64 = 0
@@ -122,41 +123,6 @@ func SoftMax(v []float64) (sm []float64) {
 	return sm
 }
 
-// Tanh returns the hyperbolic tangent of x.
-// If optimization level is 0, uses the default math.Tanh().
-// If optimization level is 1, uses the "VarietyOfSound" tanh approximation.
-// If optimization level is 2, uses the "Anguita" tanh approximation.
-func Tanh(x float64) float64 {
-	switch global.MathOptimizationLevel() {
-	case 1:
-		return tanhVarietyOfSound(x)
-	case 2:
-		return tanhAnguita(x)
-	default: // no optimization
-		return math.Tanh(x)
-	}
-}
-
-// tanhAnguita calculate the tanh using the approximation described in:
-// "Speed Improvement of the Back-Propagation on Current Generation Workstations" by Anguita et al, 1993.
-func tanhAnguita(x float64) float64 {
-	switch {
-	case x > 1.92033:
-		return 0.96016
-	case x > 0:
-		return 0.96016 - 0.26037*(x-1.92033)*(x-1.92033)
-	case x <= -1.92033:
-		return -0.96016
-	default: // x < 0
-		return 0.26037*(x+1.92033)*(x+1.92033) - 0.96016
-	}
-}
-
-// tanhVarietyOfSound calculate the tanh using the approximation described in:
-// https://varietyofsound.wordpress.com/2011/02/14/efficient-tanh-computation-using-lamberts-continued-fraction/
-func tanhVarietyOfSound(x float64) float64 {
-	x2 := x * x
-	a := x * (135135.0 + x2*(17325.0+x2*(378.0+x2)))
-	b := 135135.0 + x2*(62370.0+x2*(3150.0+x2*28.0))
-	return a / b
+func CumSum(dst, src []float64) []float64 {
+	return f64.CumSum(dst, src)
 }

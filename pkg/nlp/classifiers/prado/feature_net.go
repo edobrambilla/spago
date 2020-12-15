@@ -156,20 +156,20 @@ type FeatureNetProcessor struct {
 	convolutionProcessors []*convolution.Processor
 }
 
-func (m *FeatureNet) NewProc(g *ag.Graph) nn.Processor {
+func (m *FeatureNet) NewProc(ctx nn.Context) nn.Processor {
 	nChannels := m.config.UnigramsChannels + m.config.BigramsChannels + m.config.TrigramsChannels + m.config.FourgramsChannels +
 		m.config.FivegramsChannels + m.config.Skip1BigramsChannels + m.config.Skip1TrigramsChannels +
 		m.config.Skip2BigramsChannels
 	convNetProc := make([]*convolution.Processor, nChannels)
 	c := 0
 	for n := 0; n < nChannels; n++ {
-		convNetProc[n] = m.convolutionModels[c+n].NewProc(g).(*convolution.Processor)
+		convNetProc[n] = m.convolutionModels[c+n].NewProc(ctx).(*convolution.Processor)
 	}
 	return &FeatureNetProcessor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
 			Mode:              nn.Training,
-			Graph:             g,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 		convolutionProcessors: convNetProc,

@@ -62,17 +62,18 @@ func (m *Embeddings) SetProjectedEmbeddings(codes map[string]mat.Matrix) {
 	}
 }
 
-func (m *Embeddings) NewProc(g *ag.Graph) nn.Processor {
+func (m *Embeddings) NewProc(ctx nn.Context) nn.Processor {
+	graph := ctx.Graph
 	return &EmbeddingsProcessor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
 			Mode:              nn.Training,
-			Graph:             g,
+			Graph:             graph,
 			FullSeqProcessing: false,
 		},
 		model:            m,
-		wordsLayer:       m.Word.NewProc(g).(*embeddings.Processor),
-		unknownEmbedding: g.NewWrap(g.NewVariable(m.Projection.GetHash(mat.NewInitDense(m.Size, 1, -1.0)), false)),
+		wordsLayer:       m.Word.NewProc(ctx).(*embeddings.Processor),
+		unknownEmbedding: graph.NewWrap(graph.NewVariable(m.Projection.GetHash(mat.NewInitDense(m.Size, 1, -1.0)), false)),
 	}
 }
 

@@ -31,7 +31,7 @@ func (s *Server) DiscriminateHandler(w http.ResponseWriter, req *http.Request) {
 
 	result := s.discriminate(body.Text)
 	_, pretty := req.URL.Query()["pretty"]
-	response, err := result.Dump(pretty)
+	response, err := Dump(result, pretty)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -81,8 +81,7 @@ func (s *Server) discriminate(text string) *Response {
 
 	g := ag.NewGraph()
 	defer g.Clear()
-	proc := s.model.NewProc(g).(*Processor)
-	proc.SetMode(nn.Inference)
+	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Training}).(*Processor)
 	encoded := proc.Encode(tokenized)
 
 	fakeTokens := make(map[int]bool, 0)

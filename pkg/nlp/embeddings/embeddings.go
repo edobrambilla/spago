@@ -75,11 +75,11 @@ func (m *Model) ClearUsedEmbeddings() {
 		return
 	}
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	for _, embedding := range m.UsedEmbeddings {
 		mat.ReleaseDense(embedding.Value().(*mat.Dense))
 	}
 	m.UsedEmbeddings = map[string]*nn.Param{}
-	m.mu.Unlock()
 }
 
 func (m *Model) DropAll() error {
@@ -111,8 +111,8 @@ func (m *Model) Count() int {
 	return len(keys)
 }
 
-// SetEmbeddings inserts a new word embeddings.
-// If the word is already on the map, overwrites the existing value with the new one.
+// SetEmbedding inserts a new word embedding.
+// If the word is already on the map, it overwrites the existing value with the new one.
 func (m *Model) SetEmbedding(word string, value *mat.Dense) {
 	if m.ReadOnly {
 		log.Fatal("embedding: set operation not permitted in read-only mode")
@@ -161,7 +161,7 @@ func (m *Model) GetEmbedding(word string) *nn.Param {
 //     - to keep track of used embeddings, should they be optimized.
 // It panics in case of storage errors.
 func (m *Model) getEmbedding(word string) *nn.Param {
-	if embedding, ok := m.UsedEmbeddings[word]; ok {
+	if embedding, ok := m.getUsedEmbedding(word); ok {
 		return embedding
 	}
 	data, ok, err := m.storage.Get([]byte(word))
@@ -180,9 +180,16 @@ func (m *Model) getEmbedding(word string) *nn.Param {
 	}
 	embedding.SetName(word)
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.UsedEmbeddings[word] = embedding // important
-	m.mu.Unlock()
 	return embedding
+}
+
+func (m *Model) getUsedEmbedding(word string) (embedding *nn.Param, ok bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	embedding, ok = m.UsedEmbeddings[word]
+	return
 }
 
 type Processor struct {
@@ -190,23 +197,23 @@ type Processor struct {
 	ZeroEmbedding ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	var zeroEmbedding ag.Node = nil
 	if m.UseZeroEmbedding {
-		zeroEmbedding = g.NewWrap(m.ZeroEmbedding)
+		zeroEmbedding = ctx.Graph.NewWrap(m.ZeroEmbedding)
 	}
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		ZeroEmbedding: zeroEmbedding, // it can be nil
 	}
 }
 
-// Encodes returns the embeddings associated with the input words.
+// Encode returns the embeddings associated with the input words.
 // The embeddings are returned as Node(s) already inserted in the graph.
 // To words that have no embeddings, the corresponding nodes
 // are nil or the `ZeroEmbedding`, depending on the configuration.

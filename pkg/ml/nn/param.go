@@ -7,15 +7,16 @@ package nn
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
+	"log"
+	"strings"
+	"sync"
+
 	"github.com/nlpodyssey/spago/pkg/mat"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/ag/fn"
 	"github.com/nlpodyssey/spago/pkg/utils"
 	"github.com/nlpodyssey/spago/pkg/utils/kvdb"
-	"io"
-	"log"
-	"strings"
-	"sync"
 )
 
 type ParamsType int
@@ -141,7 +142,7 @@ func (r *Param) ReplaceValue(value mat.Matrix) {
 	}
 }
 
-// ScalarValue() returns the the scalar value of the node.
+// ScalarValue returns the the scalar value of the node.
 // It panics if the value is not a scalar.
 // Note that it is not possible to start the backward step from a scalar value.
 func (r *Param) ScalarValue() float64 {
@@ -238,6 +239,24 @@ func (r *Param) updateStorage() {
 	}
 }
 
+// MarshalBinary satisfies package pkg/encoding/gob custom marshaling interface
+func (r *Param) MarshalBinary() ([]byte, error) {
+	var b bytes.Buffer
+	_, err := mat.MarshalBinaryTo(r.value, &b)
+	if err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
+}
+
+// UnmarshalBinary satisfies pkg/encoding/gob custom marshaling interface
+func (r *Param) UnmarshalBinary(data []byte) error {
+	b := bytes.NewBuffer(data)
+	value, _, err := mat.NewUnmarshalBinaryFrom(b)
+	r.value = value
+	return err
+}
+
 type ParamSerializer struct {
 	*Param
 }
@@ -303,7 +322,6 @@ func PayloadMarshalBinaryTo(supp *Payload, w io.Writer) (int, error) {
 	return n, err
 }
 
-//
 func NewPayloadUnmarshalBinaryFrom(r io.Reader) (*Payload, int, error) {
 	var h header
 	n, err := h.unmarshalBinaryFrom(r)

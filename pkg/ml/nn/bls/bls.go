@@ -3,9 +3,9 @@
 // license that can be found in the LICENSE file.
 
 /*
-Implementation of the Broad Learning System (BLS) described in "Broad Learning System: An Effective and Efficient
-Incremental Learning System Without the Need for Deep Architecture" by C. L. Philip Chen and Zhulin Liu, 2017.
-(https://ieeexplore.ieee.org/document/7987745)
+Package bls provides an implementation of the Broad Learning System (BLS) described in "Broad Learning System:
+An Effective and Efficient Incremental Learning System Without the Need for Deep Architecture" by C. L. Philip Chen
+and Zhulin Liu, 2017. (https://ieeexplore.ieee.org/document/7987745)
 
 The "Model" contains only the inference part of the Broad Learning System.
 The ridge regression approximation training is performed by the "BroadLearningAlgorithm".
@@ -42,6 +42,7 @@ type Config struct {
 	EnhancedNodesDropout         float64
 }
 
+// Model contains the serializable parameters.
 type Model struct {
 	Config
 	Wz []*nn.Param `type:"weights"`
@@ -52,6 +53,7 @@ type Model struct {
 	B  *nn.Param   `type:"biases"`
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(c Config) *Model {
 	length := c.NumOfFeatures
 	wz := make([]*nn.Param, length)
@@ -82,7 +84,9 @@ type Processor struct {
 	b  ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+	g := ctx.Graph
 	length := m.NumOfFeatures
 	wx := make([]ag.Node, length)
 	bx := make([]ag.Node, length)
@@ -108,8 +112,8 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		Config: m.Config,
@@ -122,6 +126,7 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 	}
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	ys := make([]ag.Node, len(xs))
 	for i, x := range xs {
@@ -149,15 +154,13 @@ func (p *Processor) featuresMapping(x ag.Node) ag.Node {
 func (p *Processor) useFeaturesDropout(x ag.Node) ag.Node {
 	if p.Mode == nn.Training && p.FeaturesDropout > 0.0 {
 		return p.Graph.Dropout(x, p.FeaturesDropout)
-	} else {
-		return x
 	}
+	return x
 }
 
 func (p *Processor) useEnhancedNodesDropout(x ag.Node) ag.Node {
 	if p.Mode == nn.Training && p.EnhancedNodesDropout > 0.0 {
 		return p.Graph.Dropout(x, p.EnhancedNodesDropout)
-	} else {
-		return x
 	}
+	return x
 }

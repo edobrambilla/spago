@@ -28,7 +28,7 @@ type TokenClassifierBody struct {
 	Text    string             `json:"text"`
 }
 
-// DiscriminateHandler handles a discriminate request over HTTP.
+// LabelerHandler handles a labeling request over HTTP.
 func (s *Server) LabelerHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*") // that's intended for testing purposes only
 	w.Header().Set("Content-Type", "application/json")
@@ -43,7 +43,7 @@ func (s *Server) LabelerHandler(w http.ResponseWriter, req *http.Request) {
 	result := s.label(body.Text, body.Options.MergeEntities, body.Options.FilterNotEntities)
 
 	_, pretty := req.URL.Query()["pretty"]
-	response, err := result.Dump(pretty)
+	response, err := Dump(result, pretty)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -68,8 +68,7 @@ func (s *Server) label(text string, merge bool, filter bool) *Response {
 
 	g := ag.NewGraph()
 	defer g.Clear()
-	proc := s.model.NewProc(g).(*Processor)
-	proc.SetMode(nn.Inference)
+	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Inference}).(*Processor)
 	encoded := proc.Encode(tokenized)
 	encoded = encoded[1 : len(encoded)-1] // trim [CLS] and [SEP]
 
@@ -94,7 +93,7 @@ func (s *Server) label(text string, merge bool, filter bool) *Response {
 			Text:  groupedTokens[i].String,
 			Start: groupedTokens[i].Offsets.Start,
 			End:   groupedTokens[i].Offsets.End,
-			Label: s.model.Classifier.config.Labels[best],
+			Label: s.model.Classifier.Config.Labels[best],
 		})
 	}
 	if merge {

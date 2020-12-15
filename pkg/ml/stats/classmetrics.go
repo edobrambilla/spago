@@ -6,6 +6,8 @@ package stats
 
 import "math"
 
+// ClassMetrics provides methods to calculate Precision, Recall, F1Score, Accuracy
+// and other metrics useful to analyze the accuracy of a classifier.
 type ClassMetrics struct {
 	TruePos  int // The number of true positive results (correctly marked as positive)
 	TrueNeg  int // The number of true negative results (correctly marked as negative)
@@ -13,6 +15,7 @@ type ClassMetrics struct {
 	FalseNeg int // The number of false negative results (that should have been positive)
 }
 
+// NewMetricCounter returns a new ClassMetrics ready-to-use.
 func NewMetricCounter() *ClassMetrics {
 	return &ClassMetrics{
 		TruePos:  0,
@@ -30,18 +33,22 @@ func (c *ClassMetrics) Reset() {
 	c.FalseNeg = 0
 }
 
+// IncTruePos increments the true positive.
 func (c *ClassMetrics) IncTruePos() {
 	c.TruePos++
 }
 
+// IncTrueNeg increments the true negative.
 func (c *ClassMetrics) IncTrueNeg() {
 	c.TrueNeg++
 }
 
+// IncFalsePos increments the false positive.
 func (c *ClassMetrics) IncFalsePos() {
 	c.FalsePos++
 }
 
+// IncFalseNeg increments the false negative.
 func (c *ClassMetrics) IncFalseNeg() {
 	c.FalseNeg++
 }
@@ -77,10 +84,10 @@ func (c *ClassMetrics) Accuracy() float64 {
 	return zeroIfNaN(numerator / (numerator + float64(c.FalseNeg+c.FalsePos)))
 }
 
+// zeroIfNaN returns zero if the value is NaN otherwise the value.
 func zeroIfNaN(value float64) float64 {
 	if value == math.NaN() {
 		return 0.0
-	} else {
-		return value
 	}
+	return value
 }

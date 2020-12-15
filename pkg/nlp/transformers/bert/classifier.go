@@ -21,13 +21,13 @@ type ClassifierConfig struct {
 }
 
 type Classifier struct {
-	config ClassifierConfig
+	Config ClassifierConfig
 	*linear.Model
 }
 
 func NewTokenClassifier(config ClassifierConfig) *Classifier {
 	return &Classifier{
-		config: config,
+		Config: config,
 		Model:  linear.New(config.InputSize, len(config.Labels)),
 	}
 }
@@ -36,13 +36,13 @@ type ClassifierProcessor struct {
 	*linear.Processor
 }
 
-func (m *Classifier) NewProc(g *ag.Graph) nn.Processor {
+func (m *Classifier) NewProc(ctx nn.Context) nn.Processor {
 	return &ClassifierProcessor{
-		Processor: m.Model.NewProc(g).(*linear.Processor),
+		Processor: m.Model.NewProc(ctx).(*linear.Processor),
 	}
 }
 
-// Predicts return the logits.
+// Predict returns the logits.
 func (p *ClassifierProcessor) Predict(xs []ag.Node) []ag.Node {
 	return p.Forward(xs...)
 }

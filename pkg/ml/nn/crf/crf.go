@@ -15,6 +15,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	TransitionScores *nn.Param `type:"weights"`
 }
@@ -35,19 +36,21 @@ type Processor struct {
 	transitionScores [][]ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 		size:             m.TransitionScores.Value().Rows() - 1,
-		transitionScores: nn.Separate(g, g.NewWrap(m.TransitionScores)),
+		transitionScores: nn.Separate(ctx.Graph, ctx.Graph.NewWrap(m.TransitionScores)),
 	}
 }
 
+// Forward is not available for the CRF. Use Predict() instead.
 func (p *Processor) Forward(_ ...ag.Node) []ag.Node {
 	panic("crf: Forward() not available. Use Predict() instead.")
 }

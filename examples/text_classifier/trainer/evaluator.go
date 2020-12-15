@@ -46,9 +46,9 @@ func NewEvaluator(model nn.Model, t TrainingConfig) *Evaluator {
 // Predict performs the forward pass and returns the predict label
 func (e *Evaluator) Predict(tokenizedExample []string) int {
 	g := ag.NewGraph()
+	c := nn.Context{Graph: g, Mode: nn.Inference}
 	defer g.Clear()
-	proc := e.model.NewProc(g)
-	proc.SetMode(nn.Inference) // Important
+	proc := e.model.NewProc(c)
 	y := proc.(*prado.Processor).Classify(tokenizedExample)[0]
 	return f64utils.ArgMax(y.Value().Data())
 }

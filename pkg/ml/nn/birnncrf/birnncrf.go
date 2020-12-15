@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Bidirectional Recurrent Neural Network (BiRNN) with a Conditional Random Fields (CRF) on top.
+// Package birnncrf provides an implementation of a Bidirectional Recurrent Neural Network (BiRNN)
+// with a Conditional Random Fields (CRF) on top.
 package birnncrf
 
 import (
@@ -13,6 +14,7 @@ import (
 	"github.com/nlpodyssey/spago/pkg/ml/nn/linear"
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	BiRNN  *birnn.Model
 	Scorer *linear.Model
@@ -26,25 +28,22 @@ type Processor struct {
 	lastScores []ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
-		biRNN:      m.BiRNN.NewProc(g).(*birnn.Processor),
-		scorer:     m.Scorer.NewProc(g).(*linear.Processor),
+		biRNN:      m.BiRNN.NewProc(ctx).(*birnn.Processor),
+		scorer:     m.Scorer.NewProc(ctx).(*linear.Processor),
 		lastScores: nil, // lazy initialized
 	}
 }
 
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	nn.SetProcessingMode(mode, p.biRNN, p.scorer)
-}
-
+// Forward performs the forward step for each input and returns the result.
 func (p Processor) Forward(xs ...ag.Node) []ag.Node {
 	features := p.biRNN.Forward(xs...)
 	return p.scorer.Forward(features...)
@@ -57,6 +56,7 @@ func (p *Processor) Predict(xs []ag.Node) []int {
 
 // TODO: the CRF backward tests are still missing
 func (p *Processor) NegativeLogLoss(targets []int) ag.Node {
-	decoder := p.Model.(*Model).CRF.NewProc(p.Graph).(*crf.Processor)
+	decoder := p.Model.(*Model).CRF.NewProc(
+		nn.Context{Graph: p.Graph, Mode: p.Mode}).(*crf.Processor)
 	return decoder.NegativeLogLoss(p.lastScores, targets)
 }

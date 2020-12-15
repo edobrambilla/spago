@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// A word embedding model that evolves itself by dynamically aggregating contextual embeddings over time during inference.
-// See "Pooled Contextualized Embeddings" by Akbik et al., 2019 https://www.aclweb.org/anthology/papers/N/N19/N19-1078/
+// Package evolvingembeddings provides s word embedding model that evolves by dynamically
+// aggregating contextual embeddings over time during inference.
+// See "Pooled Contextualized Embeddings" by Akbik et al., 2019
+// https://www.aclweb.org/anthology/papers/N/N19/N19-1078/
 package evolvingembeddings
 
 import (
@@ -167,19 +169,19 @@ type Processor struct {
 	ZeroEmbedding ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		ZeroEmbedding: ag.NewWrapNoGrad(m.ZeroEmbedding),
 	}
 }
 
-// Encodes returns the embeddings associated with the input words.
+// Encode returns the embeddings associated with the input words.
 func (p *Processor) Encode(words []string) []ag.Node {
 	encoding := make([]ag.Node, len(words))
 	cache := make(map[string]ag.Node) // be smart, don't create two nodes for the same word!

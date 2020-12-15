@@ -15,6 +15,7 @@ var (
 	_ nn.Processor = &EncoderProcessor{}
 )
 
+// Encoder contains the serializable parameters.
 type Encoder struct {
 	ScalingFFN  nn.Model
 	EncodingFFN nn.Model
@@ -28,30 +29,26 @@ type EncoderProcessor struct {
 	recursions int
 }
 
-func (m *Encoder) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Encoder) NewProc(ctx nn.Context) nn.Processor {
 	return &EncoderProcessor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
-		ffn1:       m.ScalingFFN.NewProc(g),
-		ffn2:       m.EncodingFFN.NewProc(g),
+		ffn1:       m.ScalingFFN.NewProc(ctx),
+		ffn2:       m.EncodingFFN.NewProc(ctx),
 		recursions: 0,
 	}
-}
-
-func (p *EncoderProcessor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	p.ffn1.SetMode(mode)
-	p.ffn2.SetMode(mode)
 }
 
 func (p *EncoderProcessor) GetRecursions() int {
 	return p.recursions
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *EncoderProcessor) Forward(xs ...ag.Node) []ag.Node {
 	ys := p.ffn1.Forward(xs...)
 	p.recursions = 1

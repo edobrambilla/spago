@@ -5,10 +5,11 @@
 package linear
 
 import (
+	"sync"
+
 	"github.com/nlpodyssey/spago/pkg/mat"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
-	"sync"
 )
 
 var (
@@ -16,16 +17,31 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	W *nn.Param `type:"weights"`
 	B *nn.Param `type:"biases"`
 }
 
-func New(in, out int) *Model {
-	return &Model{
+type Option func(*Model)
+
+// BiasGrad allows you to enable or disable gradient propagation on bias (enabled by default).
+func BiasGrad(enable bool) Option {
+	return func(m *Model) {
+		nn.RequiresGrad(enable)(m.B)
+	}
+}
+
+// New returns a new model with parameters initialized to zeros.
+func New(in, out int, options ...Option) *Model {
+	model := &Model{
 		W: nn.NewParam(mat.NewEmptyDense(out, in)),
 		B: nn.NewParam(mat.NewEmptyVecDense(out)),
 	}
+	for _, option := range options {
+		option(model)
+	}
+	return model
 }
 
 const defaultConcurrency = true
@@ -38,17 +54,18 @@ type Processor struct {
 	concurrent bool
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
-		w:          g.NewWrap(m.W),
-		b:          g.NewWrap(m.B),
-		concurrent: defaultConcurrency,
+		w:          ctx.Graph.NewWrap(m.W),
+		b:          ctx.Graph.NewWrap(m.B),
+		concurrent: defaultConcurrency, // TODO: from options
 	}
 }
 
@@ -56,12 +73,12 @@ func (p *Processor) SetConcurrentComputations(value bool) {
 	p.concurrent = value
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	if p.concurrent && len(xs) > 1 {
 		return p.fwdConcurrent(xs)
-	} else {
-		return p.fwdSerial(xs)
 	}
+	return p.fwdSerial(xs)
 }
 
 func (p *Processor) fwdSerial(xs []ag.Node) []ag.Node {

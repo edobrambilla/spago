@@ -3,8 +3,9 @@
 // license that can be found in the LICENSE file.
 
 /*
-Implementation of the MIST (MIxed hiSTory) recurrent network as described in "Analyzing and Exploiting NARX Recurrent
-Neural Networks for Long-Term Dependencies" by Di Pietro et al., 2018 (https://arxiv.org/pdf/1702.07805.pdf).
+Package mist provides an implementation of the MIST (MIxed hiSTory) recurrent network as
+described in "Analyzing and Exploiting NARX Recurrent Neural Networks for Long-Term Dependencies"
+by Di Pietro et al., 2018 (https://arxiv.org/pdf/1702.07805.pdf).
 */
 package mist
 
@@ -21,6 +22,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	Wx  *nn.Param `type:"weights"`
 	Wh  *nn.Param `type:"weights"`
@@ -34,6 +36,7 @@ type Model struct {
 	nd  int       // number of delays
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(in, out, numberOfDelays int) *Model {
 	return &Model{
 		Wx:  nn.NewParam(mat.NewEmptyDense(out, in)),
@@ -68,12 +71,14 @@ type Processor struct {
 	States []*State
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+	g := ctx.Graph
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		nd:     m.nd,
@@ -97,6 +102,7 @@ func (p *Processor) SetInitialState(state *State) {
 	p.States = append(p.States, state)
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	ys := make([]ag.Node, len(xs))
 	for i, x := range xs {

@@ -24,12 +24,12 @@ type TextEncoderProcessor struct {
 	nn.BaseProcessor
 }
 
-func (m *TextEncoder) NewProc(g *ag.Graph) nn.Processor {
+func (m *TextEncoder) NewProc(ctx nn.Context) nn.Processor {
 	return &TextEncoderProcessor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
 			Mode:              nn.Training,
-			Graph:             g,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 	}

@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Implementation of the "Contextual String Embeddings" of words (Akbik et al., 2018).
+// Package contextualstringembeddings provides an implementation of the "Contextual String Embeddings"
+// of words (Akbik et al., 2018).
 // https://www.aclweb.org/anthology/C18-1139/
 package contextualstringembeddings
 
@@ -54,23 +55,18 @@ type Processor struct {
 	rightToLeft *charlm.Processor
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 		mergeMode:   m.MergeMode,
-		leftToRight: m.LeftToRight.NewProc(g).(*charlm.Processor),
-		rightToLeft: m.RightToLeft.NewProc(g).(*charlm.Processor),
+		leftToRight: m.LeftToRight.NewProc(ctx).(*charlm.Processor),
+		rightToLeft: m.RightToLeft.NewProc(ctx).(*charlm.Processor),
 	}
-}
-
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	nn.SetProcessingMode(mode, p.leftToRight, p.rightToLeft)
 }
 
 type wordBoundary struct {
@@ -142,7 +138,7 @@ func padding(sequence []string, startMarker, endMarker rune) []string {
 }
 
 func process(proc *charlm.Processor, sequence []string) []ag.Node {
-	return proc.RNN.Forward(proc.GetEmbeddings(sequence)...)
+	return proc.UseProjection(proc.RNN.Forward(proc.GetEmbeddings(sequence)...)...)
 }
 
 func (p *Processor) merge(a, b ag.Node) ag.Node {

@@ -17,7 +17,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
-// Multi-Head Attention
+// Model contains the serializable parameters.
 type Model struct {
 	Attention   []*selfattention.Model
 	OutputMerge *linear.Model
@@ -26,16 +26,18 @@ type Model struct {
 	dk          int // hidden vectors dimension (dm/h)
 }
 
-func New(size, numOfHeads int) *Model {
+// New returns a new model with parameters initialized to zeros.
+func New(size, numOfHeads int, useCausalMask bool) *Model {
 	dm := size
 	dk := size / numOfHeads
 	attention := make([]*selfattention.Model, numOfHeads)
 	attentionConfig := selfattention.Config{
-		InputSize:   dm,
-		QuerySize:   dk,
-		KeySize:     dk,
-		ValueSize:   dk,
-		ScaleFactor: 1.0 / math.Sqrt(float64(dk)),
+		InputSize:     dm,
+		QuerySize:     dk,
+		KeySize:       dk,
+		ValueSize:     dk,
+		ScaleFactor:   1.0 / math.Sqrt(float64(dk)),
+		UseCausalMask: useCausalMask,
 	}
 	for i := 0; i < numOfHeads; i++ {
 		attention[i] = selfattention.New(attentionConfig)
@@ -55,31 +57,25 @@ type Processor struct {
 	outputMerge       *linear.Processor
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	headAttentionProc := make([]*selfattention.Processor, m.h)
 	for i := 0; i < m.h; i++ {
-		headAttentionProc[i] = m.Attention[i].NewProc(g).(*selfattention.Processor)
+		headAttentionProc[i] = m.Attention[i].NewProc(ctx).(*selfattention.Processor)
 	}
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 		HeadAttentionProc: headAttentionProc,
-		outputMerge:       m.OutputMerge.NewProc(g).(*linear.Processor),
+		outputMerge:       m.OutputMerge.NewProc(ctx).(*linear.Processor),
 	}
 }
 
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	p.outputMerge.SetMode(mode)
-	for _, proc := range p.HeadAttentionProc {
-		proc.SetMode(mode)
-	}
-}
-
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	h := p.Model.(*Model).h
 	headsAttention := make([][]ag.Node, h)
@@ -88,6 +84,23 @@ func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	}
 	concatHeads := make([]ag.Node, len(xs))
 	for i := 0; i < len(xs); i++ {
+		buf := make([]ag.Node, h)
+		for j := 0; j < h; j++ {
+			buf[j] = headsAttention[j][i]
+		}
+		concatHeads[i] = p.Graph.Concat(buf...)
+	}
+	return p.outputMerge.Forward(concatHeads...)
+}
+
+func (p *Processor) ForwardQKV(qs []ag.Node, ks []ag.Node, vs []ag.Node) []ag.Node {
+	h := p.Model.(*Model).h
+	headsAttention := make([][]ag.Node, h)
+	for h, proc := range p.HeadAttentionProc {
+		headsAttention[h] = proc.ForwardQKV(qs, ks, vs)
+	}
+	concatHeads := make([]ag.Node, len(qs))
+	for i := 0; i < len(qs); i++ {
 		buf := make([]ag.Node, h)
 		for j := 0; j < h; j++ {
 			buf[j] = headsAttention[j][i]

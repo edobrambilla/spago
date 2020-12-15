@@ -8,12 +8,13 @@ import "github.com/nlpodyssey/spago/pkg/mat"
 
 var _ Function = &ColView{}
 
+// ColView is an operator to extract the i-th column from a matrix.
 type ColView struct {
 	x Operand
 	i int
 }
 
-// Extract the i-th column from the input matrix
+// NewColView extracts the i-th column from the input matrix.
 func NewColView(x Operand, i int) *ColView {
 	if i < 0 {
 		panic("fn: invalid column index")

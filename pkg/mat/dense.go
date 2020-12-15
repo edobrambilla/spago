@@ -14,6 +14,7 @@ import (
 
 var _ Matrix = &Dense{}
 
+// Dense is a Matrix implementation that uses float64 as data type.
 type Dense struct {
 	rows     int
 	cols     int
@@ -60,12 +61,12 @@ func NewEmptyVecDense(size int) *Dense {
 	return GetEmptyDenseWorkspace(size, 1)
 }
 
-// NewEmptyVecDense returns a new rows x cols matrix initialized to zeros.
+// NewEmptyDense returns a new rows x cols matrix initialized to zeros.
 func NewEmptyDense(rows, cols int) *Dense {
 	return GetEmptyDenseWorkspace(rows, cols)
 }
 
-// NewEmptyVecDense returns a new one-hot vector of the given size.
+// OneHotVecDense returns a new one-hot vector of the given size.
 func OneHotVecDense(size int, oneAt int) *Dense {
 	if oneAt >= size {
 		panic(fmt.Sprintf("mat: impossible to set the one at index %d. The size is: %d", oneAt, size))
@@ -85,12 +86,12 @@ func NewInitDense(rows, cols int, val float64) *Dense {
 	return out
 }
 
-// NewInitDense returns a new size x 1 dense matrix initialized with a constant value.
+// NewInitVecDense returns a new size x 1 dense matrix initialized with a constant value.
 func NewInitVecDense(size int, val float64) *Dense {
 	return NewInitDense(size, 1, val)
 }
 
-// SetData sets the data
+// SetData sets the data.
 func (d *Dense) SetData(data []float64) {
 	if len(data) != d.size {
 		panic(fmt.Sprintf("mat: incompatible data size. Expected: %d Found: %d", d.size, len(data)))
@@ -103,7 +104,7 @@ func (d *Dense) ZerosLike() Matrix {
 	return NewEmptyDense(d.rows, d.cols)
 }
 
-// ZerosLike returns a new Dense with of the same dimensions of the receiver, initialized to ones.
+// OnesLike returns a new Dense with of the same dimensions of the receiver, initialized to ones.
 func (d *Dense) OnesLike() Matrix {
 	out := GetDenseWorkspace(d.Dims())
 	data := out.data // avoid bounds check
@@ -173,7 +174,7 @@ func (d *Dense) Size() int {
 	return d.size
 }
 
-// LastIndex returns the last index.
+// LastIndex returns the last index respect to linear indexing
 func (d *Dense) LastIndex() int {
 	return d.size - 1
 }
@@ -183,7 +184,7 @@ func (d *Dense) Data() []float64 {
 	return d.data
 }
 
-// IsVectors returns whether the matrix has one row or one column, or not.
+// IsVector returns whether the matrix has one row or one column, or not.
 func (d *Dense) IsVector() bool {
 	return d.rows == 1 || d.cols == 1
 }
@@ -256,7 +257,7 @@ func (d *Dense) ExtractRow(i int) Matrix {
 	return out
 }
 
-// ExtractRow returns a copy of the i-th column of the matrix.
+// ExtractColumn returns a copy of the i-th column of the matrix.
 func (d *Dense) ExtractColumn(i int) Matrix {
 	if i >= d.Columns() {
 		panic("mat: index out of range")
@@ -498,7 +499,7 @@ func (d *Dense) Div(other Matrix) Matrix {
 	return out
 }
 
-// Div performs the result of the element-wise division in place.
+// DivInPlace performs the result of the element-wise division in place.
 func (d *Dense) DivInPlace(other Matrix) Matrix {
 	if !(SameDims(d, other) ||
 		(other.Columns() == 1 && other.Rows() == d.Rows()) ||
@@ -721,13 +722,22 @@ func (d *Dense) SplitV(sizes ...int) []Matrix {
 	return out
 }
 
-// Norm returns the vector norm.  Use pow = 2.0 for Euclidean.
+// Norm returns the vector norm. Use pow = 2.0 for Euclidean.
 func (d *Dense) Norm(pow float64) float64 {
 	s := 0.0
 	for _, x := range d.data {
 		s += math.Pow(x, pow)
 	}
 	return math.Pow(s, 1/pow)
+}
+
+// Normalize2 normalizes an array with the Euclidean norm.
+func (d *Dense) Normalize2() *Dense {
+	norm2 := d.Norm(2)
+	if norm2 != 0.0 {
+		return d.ProdScalar(1.0 / norm2).(*Dense)
+	}
+	return d.Clone().(*Dense)
 }
 
 // Maximum returns a new matrix containing the element-wise maxima.
@@ -800,7 +810,7 @@ func (d Dense) SwapInPlace(r1, r2 int) {
 	}
 }
 
-// Return the partial pivots of a square matrix to reorder rows.
+// Pivoting returns the partial pivots of a square matrix to reorder rows.
 // Considerate square sub-matrix from element (offset, offset).
 func (d *Dense) Pivoting(row int) (Matrix, bool, []int) {
 	if d.Columns() != d.Rows() {

@@ -14,11 +14,13 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the activation operator and serializable parameters.
 type Model struct {
 	Activation ag.OpName
 	Params     []*nn.Param
 }
 
+// New returns a new model with parameters initialized to zeros.
 // TODO: restrict operators to activation functions only; or create a dedicate builder for each activation.
 func New(activation ag.OpName, params ...*nn.Param) *Model {
 	return &Model{
@@ -32,27 +34,28 @@ type Processor struct {
 	params []ag.Node
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	var params []ag.Node
 	for _, param := range m.Params {
-		params = append(params, g.NewWrap(param))
+		params = append(params, ctx.Graph.NewWrap(param))
 	}
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		params: params,
 	}
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
-	ys := make([]ag.Node, len(xs))
 	activation := p.Model.(*Model).Activation
-	for i, x := range xs {
-		ys[i] = p.Graph.Invoke(activation, append([]ag.Node{x}, p.params...)...)
+	transformed := func(x ag.Node) ag.Node {
+		return p.Graph.Invoke(activation, append([]ag.Node{x}, p.params...)...)
 	}
-	return ys
+	return ag.Map(transformed, xs)
 }

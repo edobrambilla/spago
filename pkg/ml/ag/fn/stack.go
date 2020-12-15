@@ -18,15 +18,11 @@ func NewStack(xs []Operand) *Stack {
 
 // Forward computes the output of the function.
 func (r *Stack) Forward() mat.Matrix {
-	rows := len(r.xs)
-	cols := r.xs[0].Value().Rows()
-	ms := mat.NewEmptyDense(rows, cols)
+	vs := make([]*mat.Dense, len(r.xs))
 	for i, x := range r.xs {
-		for j := 0; j < cols; j++ {
-			ms.Set(i, j, x.Value().At(j, 0))
-		}
+		vs[i] = x.Value().(*mat.Dense)
 	}
-	return ms
+	return mat.Stack(vs...)
 }
 
 func (r *Stack) Backward(gy mat.Matrix) {

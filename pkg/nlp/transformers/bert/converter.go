@@ -5,7 +5,6 @@
 package bert
 
 import (
-	"errors"
 	"fmt"
 	"github.com/nlpodyssey/gopickle/pytorch"
 	"github.com/nlpodyssey/gopickle/types"
@@ -139,7 +138,7 @@ func (c *huggingFacePreTrainedConverter) convert() error {
 func (c *huggingFacePreTrainedConverter) serializeModel() error {
 	err := utils.SerializeToFile(c.modelFilename, nn.NewParamsSerializer(c.model))
 	if err != nil {
-		return errors.New(fmt.Sprintf("bert: error during model serialization. %s", err.Error()))
+		return fmt.Errorf("bert: error during model serialization. %v", err)
 	}
 	fmt.Println("ok")
 	return nil
@@ -156,8 +155,13 @@ func (c *huggingFacePreTrainedConverter) extractHuggingFaceParams() map[string][
 		t := entry.Value.(*pytorch.Tensor)
 		paramName := normalizeParamName(key.(string))
 		fmt.Printf("Reading %s.... ", paramName)
-		paramsMap[paramName] = gopickleutils.GetData(t)
-		fmt.Println("ok")
+		switch t.Source.(type) {
+		case *pytorch.FloatStorage:
+			paramsMap[paramName] = gopickleutils.GetData(t)
+			fmt.Println("ok")
+		default:
+			fmt.Println("skip")
+		}
 	}
 	c.enrichHuggingFaceParams(paramsMap)
 	return paramsMap

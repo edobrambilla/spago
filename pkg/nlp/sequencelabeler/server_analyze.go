@@ -58,7 +58,7 @@ func (s *Server) analyze(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Sends a request to /analyze.
+// Analyze sends a request to /analyze.
 // TODO(evanmcclure@gmail.com) Reuse the gRPC message type for HTTP requests.
 func (s *Server) Analyze(ctx context.Context, req *grpcapi.AnalyzeRequest) (*grpcapi.AnalyzeReply, error) {
 	analysis, took := s.process(req.GetText(), req.GetMergeEntities())
@@ -92,8 +92,7 @@ func (s *Server) process(text string, merge bool) ([]TokenLabel, time.Duration) 
 	start := time.Now()
 	g := ag.NewGraph()
 	defer g.Clear()
-	proc := s.model.NewProc(g).(*Processor)
-	proc.SetMode(nn.Inference)
+	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Inference}).(*Processor)
 	tokenized := basetokenizer.New().Tokenize(text)
 	predicted := proc.Predict(tokenized)
 	if merge {

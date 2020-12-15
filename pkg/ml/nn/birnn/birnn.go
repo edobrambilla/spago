@@ -24,12 +24,14 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	Positive  nn.Model // positive time direction a.k.a. left-to-right
 	Negative  nn.Model // negative time direction a.k.a. right-to-left
 	MergeMode MergeType
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(positive, negative nn.Model, merge MergeType) *Model {
 	return &Model{
 		Positive:  positive,
@@ -45,26 +47,22 @@ type Processor struct {
 	Negative  nn.Processor
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 		MergeMode: m.MergeMode,
-		Positive:  m.Positive.NewProc(g),
-		Negative:  m.Negative.NewProc(g),
+		Positive:  m.Positive.NewProc(ctx),
+		Negative:  m.Negative.NewProc(ctx),
 	}
 }
 
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	p.Positive.SetMode(mode)
-	p.Negative.SetMode(mode)
-}
-
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	var pos []ag.Node
 	var neg []ag.Node

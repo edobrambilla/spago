@@ -8,6 +8,7 @@ import (
 	"github.com/nlpodyssey/spago/pkg/mat"
 	"github.com/nlpodyssey/spago/pkg/mat/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
+	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
 	"math"
 	"testing"
@@ -15,12 +16,13 @@ import (
 
 func TestModel_Forward(t *testing.T) {
 	g := ag.NewGraph()
+	c := nn.Context{Graph: g, Mode: nn.ProcessingMode(nn.Inference)}
 	v := getVocabulary()
 	vocabularyCodes := getHashedVocabulary(v)
 	model := newTestModel()
 	model.InitPradoParameters(rand.NewLockedRand(743))
 	model.Embeddings.SetProjectedEmbeddings(vocabularyCodes)
-	y := model.NewProc(g).(*Processor).Classify([]string{"the", "big", "data", "center"})
+	y := model.NewProc(c).(*Processor).Classify([]string{"the", "big", "data", "center"})
 
 	print(y)
 	if true {

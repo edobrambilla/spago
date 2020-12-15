@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// StackedEmbeddings is a convenient module that stacks multiple word embedding representations by concatenating them.
+// Package stackedembeddings provides convenient types to stack multiple word embedding representations by concatenating them.
 // The concatenation is then followed by a linear layer. The latter has the double utility of being able to project
 // the concatenated embeddings in a smaller dimension, and to further train the final words representation.
 package stackedembeddings
@@ -32,10 +32,10 @@ type Model struct {
 	ProjectionLayer *linear.Model
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	processors := make([]WordsEncoderProcessor, len(m.WordsEncoders))
 	for i, encoder := range m.WordsEncoders {
-		proc, ok := encoder.NewProc(g).(WordsEncoderProcessor)
+		proc, ok := encoder.NewProc(ctx).(WordsEncoderProcessor)
 		if !ok {
 			log.Fatal(fmt.Sprintf(
 				"stackedembeddings: impossible to instantiate a `WordsEncoderProcessor` at index %d", i))
@@ -45,12 +45,12 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: true,
 		},
 		encoders:        processors,
-		projectionLayer: m.ProjectionLayer.NewProc(g).(*linear.Processor),
+		projectionLayer: m.ProjectionLayer.NewProc(ctx).(*linear.Processor),
 	}
 }
 
@@ -58,14 +58,6 @@ type Processor struct {
 	nn.BaseProcessor
 	encoders        []WordsEncoderProcessor
 	projectionLayer *linear.Processor
-}
-
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	p.projectionLayer.SetMode(mode)
-	for _, encoder := range p.encoders {
-		encoder.SetMode(mode)
-	}
 }
 
 func (p *Processor) Encode(words []string) []ag.Node {

@@ -17,8 +17,9 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
-// This is variant of the Feedforward Sequential Memory Networks (https://arxiv.org/pdf/1512.08301.pdf) where the
-// neurons in the same hidden layer are independent of each other and they are connected across layers as in the IndRNN.
+// Model implements a variant of the Feedforward Sequential Memory Networks
+// (https://arxiv.org/pdf/1512.08301.pdf) where the neurons in the same hidden layer
+// are independent of each other and they are connected across layers as in the IndRNN.
 type Model struct {
 	W     *nn.Param   `type:"weights"`
 	WRec  *nn.Param   `type:"weights"`
@@ -27,6 +28,7 @@ type Model struct {
 	order int
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(in, out, order int) *Model {
 	WS := make([]*nn.Param, order, order)
 	for i := 0; i < order; i++ {
@@ -55,7 +57,9 @@ type Processor struct {
 	States []*State
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+	g := ctx.Graph
 	wS := make([]ag.Node, len(m.WS))
 	for i, p := range m.WS {
 		wS[i] = g.NewWrap(p)
@@ -63,8 +67,8 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		order:  m.order,
@@ -83,6 +87,7 @@ func (p *Processor) SetInitialState(state *State) {
 	p.States = append(p.States, state)
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	ys := make([]ag.Node, len(xs))
 	for i, x := range xs {

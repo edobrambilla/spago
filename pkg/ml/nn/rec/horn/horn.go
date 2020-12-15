@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package horn provides an implementation of Higher Order Recurrent Neural Networks (HORN).
 package horn
 
 import (
@@ -18,13 +19,14 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
-// Higher Order Recurrent Neural Networks
+// Model contains the serializable parameters.
 type Model struct {
 	W    *nn.Param   `type:"weights"`
 	WRec []*nn.Param `type:"weights"`
 	B    *nn.Param   `type:"biases"`
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(in, out, order int) *Model {
 	wRec := make([]*nn.Param, order, order)
 	for i := 0; i < order; i++ {
@@ -49,7 +51,9 @@ type Processor struct {
 	States []*State
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+	g := ctx.Graph
 	wRec := make([]ag.Node, len(m.WRec))
 	for i, p := range m.WRec {
 		wRec[i] = g.NewWrap(p)
@@ -57,8 +61,8 @@ func (m *Model) NewProc(g *ag.Graph) nn.Processor {
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		States: nil,
@@ -75,6 +79,7 @@ func (p *Processor) SetInitialState(state *State) {
 	p.States = append(p.States, state)
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	ys := make([]ag.Node, len(xs))
 	for i, x := range xs {

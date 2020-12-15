@@ -75,3 +75,27 @@ func GenerateNGrams(n, dataSize int) [][]int {
 	}
 	return out
 }
+
+// SplitDataset splits the dataset into two parts. Each part consists in a list of indices.
+// The split ratio regulates the percentage of the total assigned to `b` so that `a` contains the rest.
+// For example a split ratio of 0.20 means that `b` should contain the 20% of the total and `a` the rest 80%.
+func SplitDataset(size int, splitRatio float64, seed uint64, class func(i int) string) (a []int, b []int) {
+	classCount := make(map[string]int)
+	for i := 0; i < size; i++ {
+		c := class(i)
+		classCount[c] = classCount[c] + 1
+	}
+	usedClassCount := make(map[string]int)
+	indices := utils.MakeIndices(size)
+	rand.ShuffleInPlace(indices, rand.NewLockedRand(seed))
+	for _, i := range indices {
+		c := class(i)
+		usedClassCount[c] = usedClassCount[c] + 1
+		if usedClassCount[c] <= int(splitRatio*float64(classCount[c])) {
+			b = append(b, i)
+		} else {
+			a = append(a, i)
+		}
+	}
+	return
+}

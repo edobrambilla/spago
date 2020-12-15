@@ -16,6 +16,7 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	W1    *nn.Param `type:"weights"`
 	W2    *nn.Param `type:"weights"`
@@ -23,6 +24,7 @@ type Model struct {
 	WCell *nn.Param `type:"weights"`
 }
 
+// New returns a new model with parameters initialized to zeros.
 func New(in int) *Model {
 	return &Model{
 		W1:    nn.NewParam(mat.NewEmptyDense(in, in)),
@@ -50,12 +52,14 @@ type Processor struct {
 	States []*State
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+	g := ctx.Graph
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: false,
 		},
 		w1:     g.NewWrap(m.W1),
@@ -73,6 +77,7 @@ func (p *Processor) SetInitialState(state *State) {
 	p.States = append(p.States, state)
 }
 
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	ys := make([]ag.Node, len(xs))
 	for i, x := range xs {

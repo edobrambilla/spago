@@ -14,11 +14,24 @@ var (
 	_ nn.Processor = &Processor{}
 )
 
+// Model contains the serializable parameters.
 type Model struct {
 	Layers []nn.Model
 }
 
+// New returns a new model.
 func New(layers ...nn.Model) *Model {
+	return &Model{
+		Layers: layers,
+	}
+}
+
+// Make makes a new model by obtaining each layer with a callback.
+func Make(size int, callback func(i int) nn.Model) *Model {
+	layers := make([]nn.Model, size)
+	for i := 0; i < size; i++ {
+		layers[i] = callback(i)
+	}
 	return &Model{
 		Layers: layers,
 	}
@@ -33,16 +46,17 @@ type Processor struct {
 	Layers []nn.Processor
 }
 
-func (m *Model) NewProc(g *ag.Graph) nn.Processor {
+// NewProc returns a new processor to execute the forward step.
+func (m *Model) NewProc(ctx nn.Context) nn.Processor {
 	procLayers := make([]nn.Processor, len(m.Layers))
 	for i, layer := range m.Layers {
-		procLayers[i] = layer.NewProc(g)
+		procLayers[i] = layer.NewProc(ctx)
 	}
 	return &Processor{
 		BaseProcessor: nn.BaseProcessor{
 			Model:             m,
-			Mode:              nn.Training,
-			Graph:             g,
+			Mode:              ctx.Mode,
+			Graph:             ctx.Graph,
 			FullSeqProcessing: requiresFullSeq(procLayers),
 		},
 		Layers: procLayers,
@@ -58,19 +72,12 @@ func requiresFullSeq(ps []nn.Processor) bool {
 	return false
 }
 
-func (p *Processor) SetMode(mode nn.ProcessingMode) {
-	p.Mode = mode
-	for _, layer := range p.Layers {
-		layer.SetMode(mode)
-	}
-}
-
+// Forward performs the forward step for each input and returns the result.
 func (p *Processor) Forward(xs ...ag.Node) []ag.Node {
 	if p.RequiresFullSeq() {
 		return p.fullSeqForward(xs)
-	} else {
-		return p.incrementalForward(xs)
 	}
+	return p.incrementalForward(xs)
 }
 
 func (p *Processor) fullSeqForward(xs []ag.Node) []ag.Node {
