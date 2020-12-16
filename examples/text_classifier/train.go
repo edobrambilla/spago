@@ -76,7 +76,7 @@ func newTestModel() *prado.Model {
 		InputSize:             30,
 		ProjectionSize:        128,
 		ProjectionArity:       3,
-		EncodingSize:          36,
+		EncodingSize:          32,
 		UnigramsChannels:      1,
 		BigramsChannels:       1,
 		TrigramsChannels:      1,
