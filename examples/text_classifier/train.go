@@ -83,8 +83,8 @@ func newTestModel() *prado.Model {
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
 		Skip1BigramsChannels:  1,
-		Skip2BigramsChannels:  1,
-		Skip1TrigramsChannels: 1,
+		Skip2BigramsChannels:  0,
+		Skip1TrigramsChannels: 0,
 		TypeVocabSize:         0,
 		VocabSize:             5,
 		Id2Label: map[string]string{
