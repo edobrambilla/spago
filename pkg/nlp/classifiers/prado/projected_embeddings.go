@@ -84,7 +84,7 @@ func (p *EmbeddingsProcessor) EmbedSequence(words []string) []ag.Node {
 	sequenceIndex := 0
 	for i := 0; i < len(words); i++ {
 		if wordEmbeddings[i] != nil {
-			encoded[i] = wordEmbeddings[i]
+			encoded[i] = p.Graph.NewWrapNoGrad(wordEmbeddings[i])
 		} else {
 			code := getStringCode(words[i])
 			encoded[i] = p.Graph.NewVariable(p.model.Projection.GetHash(code), false)
