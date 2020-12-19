@@ -100,7 +100,7 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 			KernelSizeY:    1,
 			XStride:        1,
 			YStride:        1,
-			InputChannels:  4,
+			InputChannels:  5,
 			OutputChannels: 1,
 			Mask:           nil,
 			Activation:     mustGetOpName(config.ConvActivation),
