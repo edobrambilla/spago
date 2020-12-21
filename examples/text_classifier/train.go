@@ -70,21 +70,21 @@ func main() {
 
 func newTestModel() *prado.Model {
 	config := prado.Config{
-		EncodingActivation:    "Tanh",
-		ConvActivation:        "Tanh",
+		EncodingActivation:    "ReLU",
+		ConvActivation:        "Identity",
 		ConvSize:              4,
 		InputSize:             30,
 		ProjectionSize:        128,
 		ProjectionArity:       3,
-		EncodingSize:          32,
+		EncodingSize:          96,
 		UnigramsChannels:      1,
 		BigramsChannels:       1,
 		TrigramsChannels:      1,
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
 		Skip1BigramsChannels:  1,
-		Skip2BigramsChannels:  0,
-		Skip1TrigramsChannels: 0,
+		Skip2BigramsChannels:  1,
+		Skip1TrigramsChannels: 1,
 		TypeVocabSize:         0,
 		VocabSize:             5,
 		Id2Label: map[string]string{
