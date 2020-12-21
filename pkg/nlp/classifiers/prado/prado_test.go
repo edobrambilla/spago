@@ -10,7 +10,6 @@ import (
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
-	"math"
 	"testing"
 )
 
@@ -73,21 +72,21 @@ func newTestModel() *Model {
 	return NewDefaultPrado(config, "path")
 }
 
-func getStringCode(s string) mat.Matrix {
-	out := mat.NewEmptyVecDense(30)
-	c := 0
-	for _, char := range s {
-		if c < 30 {
-			for n := 1; n <= 3; n++ {
-				out.Data()[c] = float64(digit(int(char), n))
-				c++
-			}
-		}
-	}
-	return out.ProdScalar(0.1)
-}
-
-func digit(num, place int) int {
-	r := num % int(math.Pow(10, float64(place)))
-	return r / int(math.Pow(10, float64(place-1)))
-}
+//func getStringCode(s string) mat.Matrix {
+//	out := mat.NewEmptyVecDense(30)
+//	c := 0
+//	for _, char := range s {
+//		if c < 30 {
+//			for n := 1; n <= 3; n++ {
+//				out.Data()[c] = float64(digit(int(char), n))
+//				c++
+//			}
+//		}
+//	}
+//	return out.ProdScalar(0.1)
+//}
+//
+//func digit(num, place int) int {
+//	r := num % int(math.Pow(10, float64(place)))
+//	return r / int(math.Pow(10, float64(place-1)))
+//}
