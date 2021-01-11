@@ -8,6 +8,7 @@ import (
 	"github.com/nlpodyssey/spago/pkg/nlp/embeddings"
 	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers/wordpiecetokenizer"
 	"math"
+	"math/rand"
 )
 
 var (
@@ -86,7 +87,7 @@ func (p *EmbeddingsProcessor) EmbedSequence(words []string) []ag.Node {
 		if wordEmbeddings[i] != nil {
 			encoded[i] = p.Graph.NewWrapNoGrad(wordEmbeddings[i])
 		} else {
-			code := getStringCode(words[i])
+			code := getHashCode(words[i])
 			encoded[i] = p.Graph.NewVariable(p.model.Projection.GetHash(code), false)
 		}
 		if words[i] == wordpiecetokenizer.DefaultSequenceSeparator {
@@ -96,18 +97,14 @@ func (p *EmbeddingsProcessor) EmbedSequence(words []string) []ag.Node {
 	return encoded
 }
 
-func getStringCode(s string) mat.Matrix {
+func getHashCode(s string) mat.Matrix {
 	out := mat.NewEmptyVecDense(30)
 	c := 0
-	for _, char := range s {
-		if c < 30 {
-			for n := 1; n <= 3; n++ {
-				out.Data()[c] = float64(digit(int(char), n))
-				c++
-			}
-		}
+	for i := 0; i < 30; i++ {
+		out.Data()[c] = (rand.Float64() * 2.0) - 1.0
+		c++
 	}
-	return out.ProdScalar(0.1)
+	return out //.ProdScalar(0.1)
 }
 
 func digit(num, place int) int {
