@@ -77,9 +77,9 @@ func newTestModel() *prado.Model {
 		ProjectionSize:        128,
 		ProjectionArity:       3,
 		EncodingSize:          96,
-		UnigramsChannels:      1,
-		BigramsChannels:       1,
-		TrigramsChannels:      1,
+		UnigramsChannels:      2,
+		BigramsChannels:       2,
+		TrigramsChannels:      2,
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
 		Skip1BigramsChannels:  1,
@@ -113,6 +113,16 @@ func getStringCode(s string) mat.Matrix {
 	return out.ProdScalar(0.1)
 }
 
+func getHashCode(random *rand.LockedRand) mat.Matrix {
+	out := mat.NewEmptyVecDense(30)
+	c := 0
+	for i := 0; i < 30; i++ {
+		out.Data()[c] = (random.Float64() * 2.0) - 1.0
+		c++
+	}
+	return out //.ProdScalar(0.1)
+}
+
 func digit(num, place int) int {
 	r := num % int(math.Pow(10, float64(place)))
 	return r / int(math.Pow(10, float64(place-1)))
@@ -121,8 +131,9 @@ func digit(num, place int) int {
 func getHashedVocabulary(vocabulary *vocabulary.Vocabulary) map[string]mat.Matrix {
 	var outMap map[string]mat.Matrix
 	outMap = make(map[string]mat.Matrix)
+	r := rand.NewLockedRand(750)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getStringCode(word)
+		outMap[word] = getHashCode(r)
 	}
 	return outMap
 }
