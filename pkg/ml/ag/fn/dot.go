@@ -4,7 +4,7 @@
 
 package fn
 
-import "github.com/nlpodyssey/spago/pkg/mat"
+import mat "github.com/nlpodyssey/spago/pkg/mat32"
 
 var _ Function = &Dot{}
 
@@ -15,6 +15,7 @@ type Dot struct {
 	x2 Operand
 }
 
+// NewDot returns a new Dot Function.
 func NewDot(x1, x2 Operand) *Dot {
 	return &Dot{x1: x1, x2: x2}
 }
@@ -26,7 +27,7 @@ func (r *Dot) Forward() mat.Matrix {
 	if !(mat.SameDims(x1v, x2v) || mat.VectorsOfSameSize(x1v, x2v)) {
 		panic("fn: matrices with not compatible size")
 	}
-	y := 0.0
+	var y mat.Float = 0.0
 	if r.x1.Value().IsVector() && r.x2.Value().IsVector() {
 		y = r.x1.Value().DotUnitary(r.x2.Value())
 	} else {
@@ -39,6 +40,7 @@ func (r *Dot) Forward() mat.Matrix {
 	return mat.NewScalar(y)
 }
 
+// Backward computes the backward pass.
 func (r *Dot) Backward(gy mat.Matrix) {
 	if !gy.IsScalar() {
 		panic("fn: the gradient had to be a scalar")

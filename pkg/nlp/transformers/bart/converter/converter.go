@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/nlpodyssey/gopickle/pytorch"
 	"github.com/nlpodyssey/gopickle/types"
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/linear"
 	"github.com/nlpodyssey/spago/pkg/nlp/embeddings"
@@ -30,6 +30,8 @@ import (
 
 const defaultHuggingFaceModelFile = "pytorch_model.bin"
 
+// ConvertHuggingFacePreTrained converts a HuggingFace pre-trained BART
+// transformer model to a corresponding spaGO model.
 func ConvertHuggingFacePreTrained(modelPath string) error {
 	configFilename, err := exists(path.Join(modelPath, bartconfig.DefaultConfigurationFile))
 	if err != nil {
@@ -43,6 +45,11 @@ func ConvertHuggingFacePreTrained(modelPath string) error {
 	if err != nil {
 		return err
 	}
+
+	// Enable training mode, so that we have writing permissions
+	// (for example, for embeddings storage files).
+	config.Training = true
+
 	model := bart.New(config, path.Join(modelPath, bartconfig.DefaultEmbeddingsStorage))
 	defer model.Close()
 	classification := barthead.NewClassification(barthead.ClassificationConfig{
@@ -145,11 +152,11 @@ func (c *huggingFacePreTrainedConverter) convert() error {
 	if err := c.serializeModel(); err != nil {
 		return err
 	}
-	fmt.Printf("BART has been successfully converted!\n")
+	fmt.Printf("BART has been converted successfully!\n")
 	return nil
 }
 
-func dumpWordEmbeddings(source []float64, dest *embeddings.Model, vocabSize int) {
+func dumpWordEmbeddings(source []mat.Float, dest *embeddings.Model, vocabSize int) {
 	size := dest.Size
 	for i := 0; i < vocabSize; i++ {
 		start := i * size
@@ -213,7 +220,7 @@ func mapBartEncoder(model *bartencoder.Model) map[string]mat.Matrix {
 func mapBartDecoder(model *bartdecoder.Model) map[string]mat.Matrix {
 	paramsMap := make(map[string]mat.Matrix)
 	for i := 0; i < model.Config.DecoderLayers; i++ {
-		layer := model.Layers.Layers[i].(*bartdecoder.Layer)
+		layer := model.Layers[i]
 		prefixBase := fmt.Sprintf("model.decoder.layers.%d", i)
 		// Self Attention
 		for j := 0; j < model.Config.DecoderAttentionHeads; j++ {
@@ -272,14 +279,14 @@ func mapClassificationHead(model *barthead.Classification) map[string]mat.Matrix
 	return paramsMap
 }
 
-func assignToParamsList(source []float64, dest []*nn.Param, rows, cols int) {
+func assignToParamsList(source []mat.Float, dest []nn.Param, rows, cols int) {
 	for i := 0; i < rows; i++ {
 		dest[i].Value().SetData(source[i*cols : (i+1)*cols])
 	}
 }
 
-func (c *huggingFacePreTrainedConverter) extractHuggingFaceParams() map[string][]float64 {
-	paramsMap := make(map[string][]float64)
+func (c *huggingFacePreTrainedConverter) extractHuggingFaceParams() map[string][]mat.Float {
+	paramsMap := make(map[string][]mat.Float)
 	result, err := pytorch.Load(c.pyTorchModelFilename)
 	if err != nil {
 		log.Fatal(err)
@@ -301,13 +308,13 @@ func (c *huggingFacePreTrainedConverter) extractHuggingFaceParams() map[string][
 	return paramsMap
 }
 
-func (c *huggingFacePreTrainedConverter) disaggregateParams(paramsMap map[string][]float64) {
+func (c *huggingFacePreTrainedConverter) disaggregateParams(paramsMap map[string][]mat.Float) {
 	c.disaggregateEncoderSelfAttentionParams(paramsMap)
 	c.disaggregateDecoderSelfAttentionParams(paramsMap)
 	c.disaggregateDecoderCrossAttentionParams(paramsMap)
 }
 
-func (c *huggingFacePreTrainedConverter) disaggregateEncoderSelfAttentionParams(paramsMap map[string][]float64) {
+func (c *huggingFacePreTrainedConverter) disaggregateEncoderSelfAttentionParams(paramsMap map[string][]mat.Float) {
 	for i := 0; i < c.config.EncoderLayers; i++ {
 		prefix := fmt.Sprintf("model.encoder.layers.%d.self_attn", i)
 		queryWeight := paramsMap[fmt.Sprintf("%s.q_proj.weight", prefix)]
@@ -332,7 +339,7 @@ func (c *huggingFacePreTrainedConverter) disaggregateEncoderSelfAttentionParams(
 	}
 }
 
-func (c *huggingFacePreTrainedConverter) disaggregateDecoderSelfAttentionParams(paramsMap map[string][]float64) {
+func (c *huggingFacePreTrainedConverter) disaggregateDecoderSelfAttentionParams(paramsMap map[string][]mat.Float) {
 	for i := 0; i < c.config.DecoderLayers; i++ {
 		prefix := fmt.Sprintf("model.decoder.layers.%d.self_attn", i)
 		queryWeight := paramsMap[fmt.Sprintf("%s.q_proj.weight", prefix)]
@@ -357,7 +364,7 @@ func (c *huggingFacePreTrainedConverter) disaggregateDecoderSelfAttentionParams(
 	}
 }
 
-func (c *huggingFacePreTrainedConverter) disaggregateDecoderCrossAttentionParams(paramsMap map[string][]float64) {
+func (c *huggingFacePreTrainedConverter) disaggregateDecoderCrossAttentionParams(paramsMap map[string][]mat.Float) {
 	for i := 0; i < c.config.DecoderLayers; i++ {
 		prefix := fmt.Sprintf("model.decoder.layers.%d.encoder_attn", i)
 		queryWeight := paramsMap[fmt.Sprintf("%s.q_proj.weight", prefix)]

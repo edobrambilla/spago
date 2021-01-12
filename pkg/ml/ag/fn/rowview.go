@@ -4,7 +4,7 @@
 
 package fn
 
-import "github.com/nlpodyssey/spago/pkg/mat"
+import mat "github.com/nlpodyssey/spago/pkg/mat32"
 
 var _ Function = &RowView{}
 
@@ -14,6 +14,7 @@ type RowView struct {
 	i int
 }
 
+// NewRowView returns a new RowView Function.
 func NewRowView(x Operand, i int) *RowView {
 	if i < 0 {
 		panic("fn: invalid row index")
@@ -35,6 +36,7 @@ func (r *RowView) Forward() mat.Matrix {
 	return y
 }
 
+// Backward computes the backward pass.
 func (r *RowView) Backward(gy mat.Matrix) {
 	if !(r.x.Value().Columns() == gy.Size()) {
 		panic("fn: matrices with not compatible size")

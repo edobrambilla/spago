@@ -5,7 +5,7 @@
 package ag
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/ml/ag/fn"
 	"sync"
 )
@@ -18,8 +18,8 @@ var (
 
 type operator struct {
 	graph        *Graph
-	timeStep     int64
-	id           int64
+	timeStep     int
+	id           int
 	function     fn.Function
 	operands     []Node
 	value        mat.Matrix // store the results of a forward evaluation
@@ -30,7 +30,7 @@ type operator struct {
 }
 
 // ID returns the ID of the node in the graph.
-func (r *operator) ID() int64 {
+func (r *operator) ID() int {
 	return r.id
 }
 
@@ -47,7 +47,7 @@ func (r *operator) Value() mat.Matrix {
 // ScalarValue() returns the the scalar value of the node.
 // It panics if the value is not a scalar.
 // Note that it is not possible to start the backward step from a scalar value.
-func (r *operator) ScalarValue() float64 {
+func (r *operator) ScalarValue() mat.Float {
 	return r.value.Scalar()
 }
 
@@ -90,7 +90,7 @@ func (r *operator) ZeroGrad() {
 	r.hasGrad = false
 }
 
-func (r *operator) getTimeStep() int64 {
+func (r *operator) TimeStep() int {
 	return r.timeStep
 }
 

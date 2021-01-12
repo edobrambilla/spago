@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/nlpodyssey/gopickle/pytorch"
 	"github.com/nlpodyssey/gopickle/types"
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/linear"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/normalization/layernorm"
@@ -27,6 +27,8 @@ import (
 const defaultHuggingFaceModelFile = "pytorch_model.bin"
 const huggingFaceEmoji = "🤗"
 
+// ConvertHuggingFacePreTrained converts a HuggingFace pre-trained BERT
+// transformer model to a corresponding spaGO model.
 func ConvertHuggingFacePreTrained(modelPath string) error {
 	configFilename, err := exists(path.Join(modelPath, DefaultConfigurationFile))
 	if err != nil {
@@ -131,7 +133,7 @@ func (c *huggingFacePreTrainedConverter) convert() error {
 	if err := c.serializeModel(); err != nil {
 		return err
 	}
-	fmt.Printf("Cool! %s transformer has been successfully converted!\n", huggingFaceEmoji)
+	fmt.Printf("BERT has been converted successfully!\n")
 	return nil
 }
 
@@ -144,8 +146,8 @@ func (c *huggingFacePreTrainedConverter) serializeModel() error {
 	return nil
 }
 
-func (c *huggingFacePreTrainedConverter) extractHuggingFaceParams() map[string][]float64 {
-	paramsMap := make(map[string][]float64)
+func (c *huggingFacePreTrainedConverter) extractHuggingFaceParams() map[string][]mat.Float {
+	paramsMap := make(map[string][]mat.Float)
 	result, err := pytorch.Load(c.pyTorchModelFilename)
 	if err != nil {
 		log.Fatal(err)
@@ -167,7 +169,7 @@ func (c *huggingFacePreTrainedConverter) extractHuggingFaceParams() map[string][
 	return paramsMap
 }
 
-func (c *huggingFacePreTrainedConverter) enrichHuggingFaceParams(paramsMap map[string][]float64) {
+func (c *huggingFacePreTrainedConverter) enrichHuggingFaceParams(paramsMap map[string][]mat.Float) {
 	for i := 0; i < c.config.NumHiddenLayers; i++ {
 		prefix := fmt.Sprintf("bert.encoder.layer.%d.attention.self", i)
 		queryWeight := paramsMap[fmt.Sprintf("%s.query.weight", prefix)]
@@ -213,7 +215,7 @@ func normalizeParamName(orig string) (normalized string) {
 	return
 }
 
-func (c *huggingFacePreTrainedConverter) convertEmbeddings(pyTorchParams map[string][]float64) {
+func (c *huggingFacePreTrainedConverter) convertEmbeddings(pyTorchParams map[string][]mat.Float) {
 	assignToParamsList(
 		pyTorchParams["bert.embeddings.position_embeddings.weight"],
 		c.model.Embeddings.Position,
@@ -228,19 +230,19 @@ func (c *huggingFacePreTrainedConverter) convertEmbeddings(pyTorchParams map[str
 
 	dumpWordEmbeddings(
 		pyTorchParams["bert.embeddings.word_embeddings.weight"],
-		c.model.Embeddings.Word,
+		c.model.Embeddings.Words,
 		c.model.Vocabulary)
 
-	c.model.Embeddings.Word.Close()
+	c.model.Embeddings.Words.Close()
 }
 
-func assignToParamsList(source []float64, dest []*nn.Param, rows, cols int) {
+func assignToParamsList(source []mat.Float, dest []nn.Param, rows, cols int) {
 	for i := 0; i < rows; i++ {
 		dest[i].Value().SetData(source[i*cols : (i+1)*cols])
 	}
 }
 
-func dumpWordEmbeddings(source []float64, dest *embeddings.Model, vocabulary *vocabulary.Vocabulary) {
+func dumpWordEmbeddings(source []mat.Float, dest *embeddings.Model, vocabulary *vocabulary.Vocabulary) {
 	size := dest.Size
 	for i := 0; i < vocabulary.Size(); i++ {
 		key, _ := vocabulary.Term(i)
@@ -254,10 +256,10 @@ func dumpWordEmbeddings(source []float64, dest *embeddings.Model, vocabulary *vo
 func mapBertEncoder(model *Encoder) map[string]mat.Matrix {
 	paramsMap := make(map[string]mat.Matrix)
 	for i := 0; i < model.NumOfLayers; i++ {
-		layer := model.LayerAt(i)
+		layer := model.Layers[i].(*EncoderLayer)
 		prefixBase := fmt.Sprintf("bert.encoder.layer.%d", i)
 		// Sublayer 1
-		for j := 0; j < model.NumOfAttentionHeads; j++ {
+		for j := 0; j < model.EncoderConfig.NumOfAttentionHeads; j++ {
 			attention := layer.MultiHeadAttention.Attention[j]
 			prefix := fmt.Sprintf("%s.%d.attention.self", prefixBase, j)
 			paramsMap[fmt.Sprintf("%s.query.weight", prefix)] = attention.Query.W.Value()

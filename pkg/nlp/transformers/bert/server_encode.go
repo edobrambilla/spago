@@ -7,9 +7,10 @@ package bert
 import (
 	"context"
 	"encoding/json"
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/nlp/transformers/bert/grpcapi"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
@@ -45,8 +46,9 @@ func (s *Server) SentenceEncoderHandler(w http.ResponseWriter, req *http.Request
 	}
 }
 
+// EncodeResponse is a JSON-serializable server response for BERT "encode" requests.
 type EncodeResponse struct {
-	Data []float64 `json:"data"`
+	Data []mat.Float `json:"data"`
 	// Took is the number of milliseconds it took the server to execute the request.
 	Took int64 `json:"took"`
 }
@@ -75,9 +77,9 @@ func (s *Server) encode(text string) *EncodeResponse {
 	origTokens := tokenizer.Tokenize(text)
 	tokenized := pad(tokenizers.GetStrings(origTokens))
 
-	g := ag.NewGraph()
+	g := ag.NewGraph(ag.ConcurrentComputations(runtime.NumCPU()))
 	defer g.Clear()
-	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Inference}).(*Processor)
+	proc := nn.Reify(nn.Context{Graph: g, Mode: nn.Inference}, s.model).(*Model)
 	encoded := proc.Encode(tokenized)
 	pooled := proc.Pool(encoded)
 	normalized := pooled.Value().(*mat.Dense).Normalize2()

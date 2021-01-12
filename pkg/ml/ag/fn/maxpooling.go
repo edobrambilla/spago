@@ -5,9 +5,8 @@
 package fn
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/utils"
-	"math"
 )
 
 var _ Function = &MaxPooling{}
@@ -23,6 +22,7 @@ type MaxPooling struct {
 	argmaxJ [][]int
 }
 
+// NewMaxPooling returns a new MaxPooling Function.
 func NewMaxPooling(x Operand, r, c int) *MaxPooling {
 	return &MaxPooling{
 		x:       x,
@@ -46,24 +46,25 @@ func (r *MaxPooling) Forward() mat.Matrix {
 
 	for row := 0; row < r.y.Rows(); row++ {
 		for col := 0; col < r.y.Columns(); col++ {
-			max := math.SmallestNonzeroFloat64
+			maximum := mat.SmallestNonzeroFloat
 			for i := row * r.rows; i < (row*r.rows)+r.rows; i++ {
 				for j := col * r.cols; j < (col*r.cols)+r.rows; j++ {
 					val := r.x.Value().At(i, j)
-					if val > max {
-						max = val
+					if val > maximum {
+						maximum = val
 						r.argmaxI[row][col] = i
 						r.argmaxJ[row][col] = j
 					}
 				}
 			}
-			r.y.Set(row, col, max)
+			r.y.Set(row, col, maximum)
 		}
 	}
 
 	return r.y
 }
 
+// Backward computes the backward pass.
 func (r *MaxPooling) Backward(gy mat.Matrix) {
 	if r.x.RequiresGrad() {
 		gx := r.x.Value().ZerosLike()

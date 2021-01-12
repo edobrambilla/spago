@@ -8,9 +8,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"runtime"
 	"time"
 
-	"github.com/nlpodyssey/spago/pkg/mat/f64utils"
+	"github.com/nlpodyssey/spago/pkg/mat32/floatutils"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers"
@@ -64,9 +65,9 @@ func (s *Server) predict(text string) *Response {
 	origTokens := tokenizer.Tokenize(text)
 	tokenized := pad(tokenizers.GetStrings(origTokens))
 
-	g := ag.NewGraph()
+	g := ag.NewGraph(ag.ConcurrentComputations(runtime.NumCPU()))
 	defer g.Clear()
-	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Inference}).(*Processor)
+	proc := nn.Reify(nn.Context{Graph: g, Mode: nn.Inference}, s.model).(*Model)
 	encoded := proc.Encode(tokenized)
 
 	masked := make([]int, 0)
@@ -78,7 +79,7 @@ func (s *Server) predict(text string) *Response {
 
 	retTokens := make([]Token, 0)
 	for tokenID, prediction := range proc.PredictMasked(encoded, masked) {
-		bestPredictedWordIndex := f64utils.ArgMax(prediction.Value().Data())
+		bestPredictedWordIndex := floatutils.ArgMax(prediction.Value().Data())
 		word, ok := s.model.Vocabulary.Term(bestPredictedWordIndex)
 		if !ok {
 			word = wordpiecetokenizer.DefaultUnknownToken // if this is returned, there's a misalignment with the vocabulary

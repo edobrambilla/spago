@@ -5,7 +5,7 @@
 package fn
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 )
 
 var _ Function = &Threshold{}
@@ -17,6 +17,7 @@ type Threshold struct {
 	k         Operand // scalar
 }
 
+// NewThreshold returns a new Threshold Function.
 func NewThreshold(x, threshold, k Operand) *Threshold {
 	return &Threshold{x: x, threshold: threshold, k: k}
 }
@@ -28,6 +29,7 @@ func (r *Threshold) Forward() mat.Matrix {
 	return y
 }
 
+// Backward computes the backward pass.
 func (r *Threshold) Backward(gy mat.Matrix) {
 	if !(mat.SameDims(r.x.Value(), gy) || mat.VectorsOfSameSize(r.x.Value(), gy)) {
 		panic("fn: matrices with not compatible size")

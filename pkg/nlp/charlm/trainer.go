@@ -6,7 +6,8 @@ package charlm
 
 import (
 	"fmt"
-	"github.com/nlpodyssey/spago/pkg/mat/rand"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
+	"github.com/nlpodyssey/spago/pkg/mat32/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/losses"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
@@ -14,31 +15,34 @@ import (
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd/gdmbuilder"
 	"github.com/nlpodyssey/spago/pkg/nlp/corpora"
 	"github.com/nlpodyssey/spago/pkg/utils"
-	"math"
+	"runtime"
 )
 
+// TrainingConfig provides configuration settings for a Character-level Language Trainer.
 // TODO: add dropout
 type TrainingConfig struct {
 	Seed                  uint64
 	BatchSize             int
 	BackStep              int
-	GradientClipping      float64
+	GradientClipping      mat.Float
 	SerializationInterval int
 	UpdateMethod          gd.MethodConfig
 	ModelPath             string
 }
 
+// Trainer implements the training process for a Character-level Language Model.
 type Trainer struct {
 	TrainingConfig
 	randGen       *rand.LockedRand
 	corpus        corpora.TextCorpusIterator
 	model         *Model
 	optimizer     *gd.GradientDescent
-	bestLoss      float64
-	lastBatchLoss float64
-	curPerplexity float64
+	bestLoss      mat.Float
+	lastBatchLoss mat.Float
+	curPerplexity mat.Float
 }
 
+// NewTrainer returns a new Trainer.
 func NewTrainer(config TrainingConfig, corpus corpora.TextCorpusIterator, model *Model) *Trainer {
 	return &Trainer{
 		TrainingConfig: config,
@@ -52,6 +56,7 @@ func NewTrainer(config TrainingConfig, corpus corpora.TextCorpusIterator, model 
 	}
 }
 
+// Train executes the training process.
 func (t *Trainer) Train() {
 	t.corpus.ForEachLine(func(i int, line string) {
 		t.trainPassage(i, line)
@@ -71,10 +76,10 @@ func (t *Trainer) trainPassage(index int, text string) {
 	g := ag.NewGraph(
 		ag.Rand(t.randGen),
 		ag.IncrementalForward(false),
-		ag.ConcurrentComputations(true),
+		ag.ConcurrentComputations(runtime.NumCPU()),
 	)
 	defer g.Clear()
-	proc := t.model.NewProc(nn.Context{Graph: g, Mode: nn.Training}).(*Processor)
+	proc := nn.Reify(nn.Context{Graph: g, Mode: nn.Training}, t.model).(*Model)
 
 	// Split the text into runes and append the sequence separator
 	sequence := utils.SplitByRune(text)
@@ -97,7 +102,7 @@ func (t *Trainer) trainPassage(index int, text string) {
 		loss := t.trainBatch(proc, batch)
 		t.optimizer.Optimize()
 		t.lastBatchLoss = loss
-		t.curPerplexity = math.Exp(loss)
+		t.curPerplexity = mat.Exp(loss)
 	}
 	if g.TimeStep() != cnt {
 		panic(fmt.Sprintf("charlm: time-step `%d` different than processed items `%d`. Something goes wrong.",
@@ -113,11 +118,11 @@ func (t *Trainer) trainPassage(index int, text string) {
 // trainBatch performs both the forward step and the truncated back-propagation on a given batch.
 // Note that the processor remains the same for all batches of the same sequence,
 // so the previous recurrent states are retained for the next prediction.
-func (t *Trainer) trainBatch(proc *Processor, batch []string) float64 {
-	g := proc.GetGraph()
+func (t *Trainer) trainBatch(proc *Model, batch []string) mat.Float {
+	g := proc.Graph()
 	g.ZeroGrad()
 	prevTimeStep := g.TimeStep()
-	predicted := proc.Predict(batch...)
+	predicted := proc.Forward(batch).([]ag.Node)
 	targets := targetsIds(batch, t.model.Vocabulary, t.model.UnknownToken)
 	loss := losses.CrossEntropySeq(g, predicted[:len(targets)], targets, true)
 	g.Forward(ag.Range(prevTimeStep+1, -1))

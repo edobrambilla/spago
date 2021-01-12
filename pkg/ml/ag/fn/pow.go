@@ -5,7 +5,7 @@
 package fn
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 )
 
 var _ Function = &Pow{}
@@ -13,10 +13,11 @@ var _ Function = &Pow{}
 // Pow is an operator to perform element-wise pow function.
 type Pow struct {
 	x     Operand
-	power float64
+	power mat.Float
 }
 
-func NewPow(x Operand, power float64) *Pow {
+// NewPow returns a new Pow Function.
+func NewPow(x Operand, power mat.Float) *Pow {
 	return &Pow{x: x, power: power}
 }
 
@@ -25,6 +26,7 @@ func (r *Pow) Forward() mat.Matrix {
 	return r.x.Value().Pow(r.power)
 }
 
+// Backward computes the backward pass.
 func (r *Pow) Backward(gy mat.Matrix) {
 	if !(mat.SameDims(r.x.Value(), gy) || mat.VectorsOfSameSize(r.x.Value(), gy)) {
 		panic("fn: matrices with not compatible size")

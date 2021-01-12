@@ -4,12 +4,12 @@
 
 
 # Builder container builds the demo programs for named entities
-# recognition (ner-server), model importing (hugging_face_importer),
-# and question answering (bert_server). The binaries are then copied
-# into the same runtime container below. The version of Go given in
-# the image tag must match the version of Go in go.mod. The binaries
-# have all been statically linked, and they were built without cgo.
-FROM golang:1.14-alpine as Builder
+# recognition (ner-server), Hugging Face model importing
+# (hugging-face-importer), BERT (bert-server), BART (bert-server).
+# The binaries are then copied into the same runtime container below.
+# The version of Go given in the image tag must match the version of Go in go.mod.
+# The binaries have all been statically linked, and they were built without cgo.
+FROM golang:1.15.6-alpine3.12 as Builder
 
 # Some of the Go packages used by spaGo require gcc. OpenSSL is used
 # to generate a self-signed cert in order to test the Docker image.
@@ -32,8 +32,9 @@ RUN mkdir /build
 ADD . /build/
 WORKDIR /build
 RUN go mod download
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o bert_server cmd/bert/main.go
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o hugging_face_importer cmd/huggingfaceimporter/main.go
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o bert-server cmd/bert/main.go
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o bart-server cmd/bart/main.go
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o hugging-face-importer cmd/huggingfaceimporter/main.go
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o ner-server cmd/ner/main.go
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-extldflags=-static" -o docker-entrypoint docker-entrypoint.go
 
@@ -53,10 +54,7 @@ RUN mkdir /etc/ssl/certs/spago \
 	;
 
 
-# The definition of the runtime container now follows, and it contains
-# demo programs for named entities recognition (ner-server), model
-# importing (hugging_face_importer), and question answering
-# (bert_server).
+# The definition of the runtime container now follows.
 FROM scratch
 
 # Copy the user info from the Builder container.
@@ -70,8 +68,9 @@ COPY --from=Builder /etc/ssl/certs/spago/server.key /etc/ssl/certs/spago/server.
 
 # Copy the compiled demo servers and other programs from the Builder
 # container.
-COPY --from=Builder /build/bert_server /bert_server
-COPY --from=Builder /build/hugging_face_importer /hugging_face_importer
+COPY --from=Builder /build/bert-server /bert-server
+COPY --from=Builder /build/bart-server /bart-server
+COPY --from=Builder /build/hugging-face-importer /hugging-face-importer
 COPY --from=Builder /build/ner-server /ner-server
 COPY --from=Builder /build/docker-entrypoint /docker-entrypoint
 

@@ -5,7 +5,7 @@
 package fn
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 )
 
 var _ Function = &AtVec{}
@@ -16,6 +16,7 @@ type AtVec struct {
 	i int
 }
 
+// NewAtVec returns a new AtVec Function.
 func NewAtVec(x Operand, i int) *AtVec {
 	return &AtVec{x: x, i: i}
 }
@@ -25,6 +26,7 @@ func (r *AtVec) Forward() mat.Matrix {
 	return mat.NewScalar(r.x.Value().AtVec(r.i))
 }
 
+// Backward computes the backward pass.
 func (r *AtVec) Backward(gy mat.Matrix) {
 	if r.x.RequiresGrad() {
 		dx := mat.NewEmptyDense(r.x.Value().Dims())

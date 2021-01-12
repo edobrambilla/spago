@@ -4,15 +4,18 @@
 
 package hyperbolic
 
+import mat "github.com/nlpodyssey/spago/pkg/mat32"
+
 // Hyperbolic defines an hyperbolic decay depending on the time step
 //     lr = lr / (1 + rate*t).
 type Hyperbolic struct {
-	init  float64
-	final float64
-	rate  float64
+	init  mat.Float
+	final mat.Float
+	rate  mat.Float
 }
 
-func New(init, final, rate float64) *Hyperbolic {
+// New returns a new Hyperbolic decay optimizer.
+func New(init, final, rate mat.Float) *Hyperbolic {
 	if init < final {
 		panic("decay: the initial learning rate must be >= than the final one")
 	}
@@ -23,9 +26,10 @@ func New(init, final, rate float64) *Hyperbolic {
 	}
 }
 
-func (d *Hyperbolic) Decay(lr float64, t int) float64 {
+// Decay calculates the decay of the learning rate lr at time t.
+func (d *Hyperbolic) Decay(lr mat.Float, t int) mat.Float {
 	if t > 1 && d.rate > 0.0 && lr > d.final {
-		return d.init / (1.0 + d.rate*float64(t))
+		return d.init / (1.0 + d.rate*mat.Float(t))
 	}
 	return lr
 }

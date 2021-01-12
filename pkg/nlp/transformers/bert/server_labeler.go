@@ -7,22 +7,25 @@ package bert
 import (
 	"encoding/json"
 	"fmt"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/nlpodyssey/spago/pkg/mat/f64utils"
+	"github.com/nlpodyssey/spago/pkg/mat32/floatutils"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers"
 	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers/wordpiecetokenizer"
 )
 
+// LabelerOptionsType is a JSON-serializable set of options for BERT "tag" (labeler) requests.
 type LabelerOptionsType struct {
 	MergeEntities     bool `json:"mergeEntities"`     // default false
 	FilterNotEntities bool `json:"filterNotEntities"` // default false
 }
 
+// TokenClassifierBody provides JSON-serializable parameters for BERT "tag" (labeler) requests.
 type TokenClassifierBody struct {
 	Options LabelerOptionsType `json:"options"`
 	Text    string             `json:"text"`
@@ -68,7 +71,7 @@ func (s *Server) label(text string, merge bool, filter bool) *Response {
 
 	g := ag.NewGraph()
 	defer g.Clear()
-	proc := s.model.NewProc(nn.Context{Graph: g, Mode: nn.Inference}).(*Processor)
+	proc := nn.Reify(nn.Context{Graph: g, Mode: nn.Inference}, s.model).(*Model)
 	encoded := proc.Encode(tokenized)
 	encoded = encoded[1 : len(encoded)-1] // trim [CLS] and [SEP]
 
@@ -81,14 +84,14 @@ func (s *Server) label(text string, merge bool, filter bool) *Response {
 			cnt++
 		}
 		if cnt > 1 {
-			avgEncoded[i] = g.DivScalar(avgEncoded[i], g.NewScalar(float64(cnt)))
+			avgEncoded[i] = g.DivScalar(avgEncoded[i], g.NewScalar(mat.Float(cnt)))
 		}
 	}
 
 	retTokens := make([]Token, 0)
 	for i, logits := range proc.TokenClassification(avgEncoded) {
-		probs := f64utils.SoftMax(logits.Value().Data())
-		best := f64utils.ArgMax(probs)
+		probs := floatutils.SoftMax(logits.Value().Data())
+		best := floatutils.ArgMax(probs)
 		retTokens = append(retTokens, Token{
 			Text:  groupedTokens[i].String,
 			Start: groupedTokens[i].Offsets.Start,

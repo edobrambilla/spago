@@ -4,7 +4,7 @@
 
 package fn
 
-import "github.com/nlpodyssey/spago/pkg/mat"
+import mat "github.com/nlpodyssey/spago/pkg/mat32"
 
 var _ Function = &ColView{}
 
@@ -36,6 +36,7 @@ func (r *ColView) Forward() mat.Matrix {
 	return y
 }
 
+// Backward computes the backward pass.
 func (r *ColView) Backward(gy mat.Matrix) {
 	if !(r.x.Value().Rows() == gy.Size()) {
 		panic("fn: matrices with not compatible size")

@@ -5,7 +5,7 @@
 package fn
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 )
 
 var _ Function = &DivScalar{}
@@ -16,6 +16,7 @@ type DivScalar struct {
 	x2 Operand // scalar
 }
 
+// NewDivScalar returns a new DivScalar Function.
 func NewDivScalar(x1, x2 Operand) *DivScalar {
 	return &DivScalar{x1: x1, x2: x2}
 }
@@ -25,6 +26,7 @@ func (r *DivScalar) Forward() mat.Matrix {
 	return r.x1.Value().ProdScalar(1.0 / r.x2.Value().Scalar())
 }
 
+// Backward computes the backward pass.
 func (r *DivScalar) Backward(gy mat.Matrix) {
 	if !(mat.SameDims(r.x1.Value(), gy) || mat.VectorsOfSameSize(r.x1.Value(), gy)) {
 		panic("fn: matrices with not compatible size")
@@ -33,7 +35,7 @@ func (r *DivScalar) Backward(gy mat.Matrix) {
 		r.x1.PropagateGrad(gy.ProdScalar(1.0 / r.x2.Value().Scalar()))
 	}
 	if r.x2.RequiresGrad() {
-		gx := 0.0
+		var gx mat.Float = 0.0
 		for i := 0; i < gy.Rows(); i++ {
 			for j := 0; j < gy.Columns(); j++ {
 				gx += gy.At(i, j) * (r.x1.Value().At(i, j) / (-1.0 * (r.x2.Value().Scalar() * r.x2.Value().Scalar())))

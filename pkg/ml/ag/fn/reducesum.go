@@ -5,7 +5,7 @@
 package fn
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 )
 
 var _ Function = &ReduceSum{}
@@ -15,6 +15,7 @@ type ReduceSum struct {
 	x Operand
 }
 
+// NewReduceSum returns a new ReduceSum Function.
 func NewReduceSum(x Operand) *ReduceSum {
 	return &ReduceSum{x: x}
 }
@@ -24,6 +25,7 @@ func (r *ReduceSum) Forward() mat.Matrix {
 	return mat.NewScalar(r.x.Value().Sum())
 }
 
+// Backward computes the backward pass.
 func (r *ReduceSum) Backward(gy mat.Matrix) {
 	if !gy.IsScalar() {
 		panic("fn: the gradient had to be a scalar")

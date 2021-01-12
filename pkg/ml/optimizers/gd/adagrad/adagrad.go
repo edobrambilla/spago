@@ -5,26 +5,29 @@
 package adagrad
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd"
 )
 
 var _ gd.MethodConfig = &Config{}
 
+// Config provides configuration settings for an AdaGrad optimizer.
 type Config struct {
 	gd.MethodConfig
-	LR      float64
-	Epsilon float64
+	LR      mat.Float
+	Epsilon mat.Float
 }
 
-func NewConfig(lr, epsilon float64) Config {
+// NewConfig returns a new AdaGrad Config.
+func NewConfig(lr, epsilon mat.Float) Config {
 	return Config{
 		LR:      lr,
 		Epsilon: epsilon,
 	}
 }
 
+// NewDefaultConfig returns a new Config with generically reasonable default values.
 func NewDefaultConfig() Config {
 	return Config{
 		LR:      0.01,
@@ -42,16 +45,19 @@ type AdaGrad struct {
 	Config
 }
 
+// New returns a new AdaGrad optimizer, initialized according to the given configuration.
 func New(c Config) *AdaGrad {
 	return &AdaGrad{Config: c}
 }
 
 const m = 0
 
+// Label returns the enumeration-like value which identifies this gradient descent method.
 func (o *AdaGrad) Label() int {
 	return gd.AdaGrad
 }
 
+// NewSupport returns a new support structure with the given dimensions.
 func (o *AdaGrad) NewSupport(r, c int) *nn.Payload {
 	return &nn.Payload{
 		Label: o.Label(),
@@ -59,7 +65,8 @@ func (o *AdaGrad) NewSupport(r, c int) *nn.Payload {
 	}
 }
 
-func (o *AdaGrad) Delta(param *nn.Param) mat.Matrix {
+// Delta returns the difference between the current params and where the method wants it to be.
+func (o *AdaGrad) Delta(param nn.Param) mat.Matrix {
 	return o.calcDelta(param.Grad(), gd.GetOrSetPayload(param, o).Data)
 }
 
@@ -67,7 +74,7 @@ func (o *AdaGrad) Delta(param *nn.Param) mat.Matrix {
 // delta = (grads / (sqrt(m) + eps)) * lr
 func (o *AdaGrad) calcDelta(grads mat.Matrix, supp []mat.Matrix) mat.Matrix {
 	supp[m].AddInPlace(grads.Prod(grads))
-	buf := mat.Sqrt(supp[m])
+	buf := mat.SqrtMatrix(supp[m])
 	buf.AddScalarInPlace(o.Epsilon)
 	delta := grads.Div(buf)
 	delta.ProdScalarInPlace(o.LR)

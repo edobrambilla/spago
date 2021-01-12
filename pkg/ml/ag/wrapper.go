@@ -5,7 +5,7 @@
 package ag
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/ml/ag/fn"
 )
 
@@ -18,13 +18,13 @@ var (
 type wrapper struct {
 	GradValue
 	graph    *Graph
-	timeStep int64
-	id       int64
+	timeStep int
+	id       int
 	wrapGrad bool
 }
 
 // ID returns the ID of the node in the graph.
-func (r *wrapper) ID() int64 {
+func (r *wrapper) ID() int {
 	return r.id
 }
 
@@ -73,6 +73,6 @@ func (r *wrapper) ZeroGrad() {
 	r.GradValue.ZeroGrad()
 }
 
-func (r *wrapper) getTimeStep() int64 {
+func (r *wrapper) TimeStep() int {
 	return r.timeStep
 }
