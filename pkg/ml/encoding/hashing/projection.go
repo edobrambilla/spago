@@ -5,8 +5,8 @@
 package hashing
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
-	"github.com/nlpodyssey/spago/pkg/mat/rand"
+	"github.com/nlpodyssey/spago/pkg/mat32"
+	"github.com/nlpodyssey/spago/pkg/mat32/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/initializers"
 	"math"
 )
@@ -21,7 +21,7 @@ type Config struct {
 
 type Data struct {
 	// Random vectors, normal distributed
-	W []mat.Matrix
+	W []mat32.Matrix
 	Config
 }
 
@@ -30,10 +30,10 @@ func New(inputSize int, hashSize int, narity int) *Data {
 	if narity > 3 || narity < 2 {
 		panic("projection: narity can be 2 or 3.")
 	}
-	w := make([]mat.Matrix, hashSize)
+	w := make([]mat32.Matrix, hashSize)
 	rndGen := rand.NewLockedRand(33)
 	for i := 0; i < hashSize; i++ {
-		w[i] = mat.NewEmptyVecDense(inputSize)
+		w[i] = mat32.NewEmptyVecDense(inputSize)
 		initializers.Normal(w[i], 0, 1, rndGen)
 	}
 	return &Data{
@@ -68,11 +68,11 @@ func quantization(n float64, narity int, min float64, max float64) float64 {
 	return 0.0
 }
 
-func (d *Data) GetHash(input mat.Matrix) *mat.Dense {
-	out := mat.NewEmptyVecDense(d.OutputSize)
+func (d *Data) GetHash(input mat32.Matrix) *mat32.Dense {
+	out := mat32.NewEmptyVecDense(d.OutputSize)
 	for i := 0; i < d.OutputSize; i++ {
 		p := input.DotUnitary(d.W[i])
-		out.Data()[i] = quantization(p, d.Config.Narity, -1.0, 1.0)
+		out.Data()[i] = float32(quantization(float64(p), d.Config.Narity, -1.0, 1.0))
 	}
 	return out
 }
