@@ -6,8 +6,8 @@ package main
 
 import (
 	"github.com/nlpodyssey/spago/examples/text_classifier/trainer"
-	"github.com/nlpodyssey/spago/pkg/mat"
-	"github.com/nlpodyssey/spago/pkg/mat/rand"
+	"github.com/nlpodyssey/spago/pkg/mat32"
+	"github.com/nlpodyssey/spago/pkg/mat32/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd/adam"
@@ -77,9 +77,9 @@ func newTestModel() *prado.Model {
 		ProjectionSize:        128,
 		ProjectionArity:       3,
 		EncodingSize:          96,
-		UnigramsChannels:      2,
-		BigramsChannels:       2,
-		TrigramsChannels:      2,
+		UnigramsChannels:      1,
+		BigramsChannels:       1,
+		TrigramsChannels:      1,
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
 		Skip1BigramsChannels:  1,
@@ -99,13 +99,13 @@ func newTestModel() *prado.Model {
 	return prado.NewDefaultPrado(config, "path")
 }
 
-func getStringCode(s string) mat.Matrix {
-	out := mat.NewEmptyVecDense(30)
+func getStringCode(s string) mat32.Matrix {
+	out := mat32.NewEmptyVecDense(30)
 	c := 0
 	for _, char := range s {
 		if c < 30 {
 			for n := 1; n <= 3; n++ {
-				out.Data()[c] = float64(digit(int(char), n))
+				out.Data()[c] = mat32.Float(float64(digit(int(char), n)))
 				c++
 			}
 		}
@@ -113,11 +113,11 @@ func getStringCode(s string) mat.Matrix {
 	return out.ProdScalar(0.1)
 }
 
-func getHashCode(random *rand.LockedRand) mat.Matrix {
-	out := mat.NewEmptyVecDense(30)
+func getHashCode(random *rand.LockedRand) mat32.Matrix {
+	out := mat32.NewEmptyVecDense(30)
 	c := 0
 	for i := 0; i < 30; i++ {
-		out.Data()[c] = (random.Float64() * 2.0) - 1.0
+		out.Data()[c] = (random.Float32() * 2.0) - 1.0
 		c++
 	}
 	return out //.ProdScalar(0.1)
@@ -128,9 +128,9 @@ func digit(num, place int) int {
 	return r / int(math.Pow(10, float64(place-1)))
 }
 
-func getHashedVocabulary(vocabulary *vocabulary.Vocabulary) map[string]mat.Matrix {
-	var outMap map[string]mat.Matrix
-	outMap = make(map[string]mat.Matrix)
+func getHashedVocabulary(vocabulary *vocabulary.Vocabulary) map[string]mat32.Matrix {
+	var outMap map[string]mat32.Matrix
+	outMap = make(map[string]mat32.Matrix)
 	r := rand.NewLockedRand(750)
 	for _, word := range vocabulary.Items() {
 		outMap[word] = getHashCode(r)

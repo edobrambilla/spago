@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/gosuri/uiprogress"
-	"github.com/nlpodyssey/spago/pkg/mat/f64utils"
+	"github.com/nlpodyssey/spago/pkg/mat32/floatutils"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/stats"
@@ -47,10 +47,10 @@ func NewEvaluator(model nn.Model, t TrainingConfig) *Evaluator {
 func (e *Evaluator) Predict(tokenizedExample []string) int {
 	g := ag.NewGraph()
 	c := nn.Context{Graph: g, Mode: nn.Inference}
+	model := nn.Reify(c, e.model).(*prado.Model)
 	defer g.Clear()
-	proc := e.model.NewProc(c)
-	y := proc.(*prado.Processor).Classify(tokenizedExample)[0]
-	return f64utils.ArgMax(y.Value().Data())
+	y := model.Forward(tokenizedExample)[0]
+	return floatutils.ArgMax(y.Value().Data())
 }
 
 func (e *Evaluator) Evaluate(epoch int) *stats.ClassMetrics {

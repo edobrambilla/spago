@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/gosuri/uiprogress"
-	"github.com/nlpodyssey/spago/pkg/mat/rand"
+	"github.com/nlpodyssey/spago/pkg/mat32/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/losses"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
@@ -37,11 +37,11 @@ type Trainer struct {
 	TrainingConfig
 	randGen       *rand.LockedRand
 	optimizer     *gd.GradientDescent
-	bestLoss      float64
-	lastBatchLoss float64
+	bestLoss      float32
+	lastBatchLoss float32
 	model         *prado.Model
 	countLines    int
-	curLoss       float64
+	curLoss       float32
 	curEpoch      int
 }
 
@@ -91,12 +91,12 @@ func (t *Trainer) trainBatches(onExample func()) {
 }
 
 // learn performs the backward respect to the cross-entropy loss, returned as scalar value
-func (t *Trainer) learn(_ int, tokenizedExample []string, label int) float64 {
+func (t *Trainer) learn(_ int, tokenizedExample []string, label int) float32 {
 	g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)))
 	c := nn.Context{Graph: g, Mode: nn.Training}
-	//g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)), ag.IncrementalForward(false), ag.ConcurrentComputations(true))
+	model := nn.Reify(c, t.model).(*prado.Model)
 	defer g.Clear()
-	y := t.model.NewProc(c).(*prado.Processor).Classify(tokenizedExample)[0]
+	y := model.Forward(tokenizedExample)[0]
 	loss := g.Div(losses.CrossEntropy(g, y, label), g.NewScalar(1.0))
 	//g.Forward()
 	g.Backward(loss)
