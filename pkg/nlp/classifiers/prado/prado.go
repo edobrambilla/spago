@@ -6,7 +6,8 @@ package prado
 
 import (
 	"encoding/json"
-	"github.com/nlpodyssey/spago/pkg/mat/rand"
+	mat "github.com/nlpodyssey/spago/pkg/mat32"
+	"github.com/nlpodyssey/spago/pkg/mat32/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/initializers"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
@@ -27,8 +28,7 @@ const (
 )
 
 var (
-	_ nn.Model     = &Model{}
-	_ nn.Processor = &Processor{}
+	_ nn.Model = &Model{}
 )
 
 type Config struct {
@@ -76,6 +76,7 @@ func LoadConfig(file string) (Config, error) {
 }
 
 type Model struct {
+	nn.BaseModel
 	Config       Config
 	Vocabulary   *vocabulary.Vocabulary
 	Embeddings   *Embeddings
@@ -158,8 +159,8 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 func (m *Model) InitPradoParameters(rndGen *rand.LockedRand) {
 	initStacked(m.Encoder.Model, rndGen)
 	initStacked(m.Classifier.Model, rndGen)
-	initConvolution(m.FeatureNet.convolutionModels, rndGen)
-	initConvolution(m.AttentionNet.convolutionModels, rndGen)
+	initConvolution(m.FeatureNet.ConvolutionModels, rndGen)
+	initConvolution(m.AttentionNet.ConvolutionModels, rndGen)
 }
 
 // InitRandom initializes the model using the Xavier (Glorot) method.
@@ -169,11 +170,11 @@ func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
 		nextLayer := model.Layers[i+1]
 		gain := 1.0
 		if nextLayer, ok := nextLayer.(*activation.Model); ok {
-			gain = initializers.Gain(nextLayer.Activation)
+			gain = float64(initializers.Gain(nextLayer.Activation))
 		}
-		nn.ForEachParam(layer, func(param *nn.Param) {
+		nn.ForEachParam(layer, func(param nn.Param) {
 			if param.Type() == nn.Weights {
-				initializers.XavierUniform(param.Value(), gain, rndGen)
+				initializers.XavierUniform(param.Value(), mat.Float(gain), rndGen)
 			}
 		})
 	}
@@ -184,50 +185,50 @@ func initConvolution(models []*convolution.Model, rndGen *rand.LockedRand) {
 	for c := 0; c < len(models); c++ {
 		for i := 0; i < len(models[c].K); i++ {
 
-			initializers.XavierUniform(models[c].K[i].Value(), initializers.Gain(models[c].Activation), rndGen)
-			initializers.XavierUniform(models[c].B[i].Value(), initializers.Gain(models[c].Activation), rndGen)
+			initializers.XavierUniform(models[c].K[i].Value(), initializers.Gain(models[c].Config.Activation), rndGen)
+			initializers.XavierUniform(models[c].B[i].Value(), initializers.Gain(models[c].Config.Activation), rndGen)
 		}
 	}
 
 }
 
-type Processor struct {
-	nn.BaseProcessor
-	Embeddings   *EmbeddingsProcessor
-	Encoder      *EncoderProcessor
-	AttentionNet *FeatureNetProcessor
-	FeatureNet   *FeatureNetProcessor
-	TextEncoder  *TextEncoderProcessor
-	Classifier   *ClassifierProcessor
-}
+//type Processor struct {
+//	nn.BaseProcessor
+//	Embeddings   *EmbeddingsProcessor
+//	Encoder      *EncoderProcessor
+//	AttentionNet *FeatureNetProcessor
+//	FeatureNet   *FeatureNetProcessor
+//	TextEncoder  *TextEncoderProcessor
+//	Classifier   *ClassifierProcessor
+//}
+//
+//func (m *Model) NewProc(ctx nn.Context) nn.Processor {
+//	return &Processor{
+//		BaseProcessor: nn.BaseProcessor{
+//			Model:             m,
+//			Mode:              nn.Training,
+//			Graph:             ctx.Graph,
+//			FullSeqProcessing: true,
+//		},
+//		Embeddings:   m.Embeddings.NewProc(ctx).(*EmbeddingsProcessor),
+//		Encoder:      m.Encoder.NewProc(ctx).(*EncoderProcessor),
+//		AttentionNet: m.FeatureNet.NewProc(ctx).(*FeatureNetProcessor),
+//		FeatureNet:   m.FeatureNet.NewProc(ctx).(*FeatureNetProcessor),
+//		TextEncoder:  m.TextEncoder.NewProc(ctx).(*TextEncoderProcessor),
+//		Classifier:   m.Classifier.NewProc(ctx).(*ClassifierProcessor),
+//	}
+//}
 
-func (m *Model) NewProc(ctx nn.Context) nn.Processor {
-	return &Processor{
-		BaseProcessor: nn.BaseProcessor{
-			Model:             m,
-			Mode:              nn.Training,
-			Graph:             ctx.Graph,
-			FullSeqProcessing: true,
-		},
-		Embeddings:   m.Embeddings.NewProc(ctx).(*EmbeddingsProcessor),
-		Encoder:      m.Encoder.NewProc(ctx).(*EncoderProcessor),
-		AttentionNet: m.FeatureNet.NewProc(ctx).(*FeatureNetProcessor),
-		FeatureNet:   m.FeatureNet.NewProc(ctx).(*FeatureNetProcessor),
-		TextEncoder:  m.TextEncoder.NewProc(ctx).(*TextEncoderProcessor),
-		Classifier:   m.Classifier.NewProc(ctx).(*ClassifierProcessor),
-	}
-}
-
-func (p *Processor) Classify(tokens []string) []ag.Node {
+func (p *Model) Forward(tokens []string) []ag.Node {
 	e := p.Embeddings.EmbedSequence(tokens)
 	encodedSequence := p.Encoder.Encode(e)
-	featureNetEncoding := p.FeatureNet.Encode(p.Model.(*Model).FeatureNet.config, encodedSequence...)
-	attentionNetEncoding := p.AttentionNet.Encode(p.Model.(*Model).AttentionNet.config, encodedSequence...)
+	featureNetEncoding := p.FeatureNet.Encode(p.FeatureNet.Config, encodedSequence...)
+	attentionNetEncoding := p.AttentionNet.Encode(p.AttentionNet.Config, encodedSequence...)
 	textEncoding := p.TextEncoder.Encode(featureNetEncoding, attentionNetEncoding)
 	output := p.Classifier.Forward(textEncoding)
 	return output
 }
 
-func (p *Processor) Forward(_ ...ag.Node) []ag.Node {
-	panic("prado: method not implemented")
-}
+//func (p *Processor) Forward(_ ...ag.Node) []ag.Node {
+//	panic("prado: method not implemented")
+//}
