@@ -5,8 +5,8 @@
 package prado
 
 import (
-	"github.com/nlpodyssey/spago/pkg/mat"
-	"github.com/nlpodyssey/spago/pkg/mat/rand"
+	"github.com/nlpodyssey/spago/pkg/mat32"
+	"github.com/nlpodyssey/spago/pkg/mat32/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
@@ -15,13 +15,14 @@ import (
 
 func TestModel_Forward(t *testing.T) {
 	g := ag.NewGraph()
-	c := nn.Context{Graph: g, Mode: nn.ProcessingMode(nn.Inference)}
 	v := getVocabulary()
 	vocabularyCodes := getHashedVocabulary(v)
 	model := newTestModel()
 	model.InitPradoParameters(rand.NewLockedRand(743))
 	model.Embeddings.SetProjectedEmbeddings(vocabularyCodes)
-	y := model.NewProc(c).(*Processor).Classify([]string{"the", "big", "data", "center"})
+	ctx := nn.Context{Graph: g, Mode: nn.Inference}
+	model = nn.Reify(ctx, model).(*Model)
+	y := model.Forward([]string{"the", "big", "data", "center"})
 
 	print(y)
 	if true {
@@ -30,9 +31,9 @@ func TestModel_Forward(t *testing.T) {
 	}
 }
 
-func getHashedVocabulary(vocabulary *vocabulary.Vocabulary) map[string]mat.Matrix {
-	var outMap map[string]mat.Matrix
-	outMap = make(map[string]mat.Matrix)
+func getHashedVocabulary(vocabulary *vocabulary.Vocabulary) map[string]mat32.Matrix {
+	var outMap map[string]mat32.Matrix
+	outMap = make(map[string]mat32.Matrix)
 	for _, word := range vocabulary.Items() {
 		outMap[word] = getStringCode(word)
 	}
@@ -72,13 +73,13 @@ func newTestModel() *Model {
 	return NewDefaultPrado(config, "path")
 }
 
-func getStringCode(s string) mat.Matrix {
-	out := mat.NewEmptyVecDense(30)
+func getStringCode(s string) mat32.Matrix {
+	out := mat32.NewEmptyVecDense(30)
 	c := 0
 	for _, char := range s {
 		if c < 30 {
 			for n := 1; n <= 3; n++ {
-				out.Data()[c] = float64(digit(int(char), n))
+				out.Data()[c] = mat32.Float(float64(digit(int(char), n)))
 				c++
 			}
 		}
