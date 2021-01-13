@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	_ nn.Model     = &Encoder{}
-	_ nn.Processor = &EncoderProcessor{}
+	_ nn.Model = &Encoder{}
 )
 
 type EncoderConfig struct {
@@ -24,6 +23,7 @@ type EncoderConfig struct {
 }
 
 type Encoder struct {
+	nn.BaseModel
 	EncoderConfig
 	*stack.Model
 }
@@ -37,16 +37,16 @@ func NewPradoEncoder(config EncoderConfig) *Encoder {
 	}
 }
 
-type EncoderProcessor struct {
-	*stack.Processor
-}
+//type EncoderProcessor struct {
+//	*stack.Processor
+//}
+//
+//func (m *Encoder) NewProc(ctx nn.Context) nn.Processor {
+//	return &EncoderProcessor{
+//		Processor: m.Model.NewProc(ctx).(*stack.Processor),
+//	}
+//}
 
-func (m *Encoder) NewProc(ctx nn.Context) nn.Processor {
-	return &EncoderProcessor{
-		Processor: m.Model.NewProc(ctx).(*stack.Processor),
-	}
-}
-
-func (p *EncoderProcessor) Encode(encoded []ag.Node) []ag.Node {
-	return p.Processor.Forward(encoded...)
+func (p *Encoder) Encode(encoded []ag.Node) []ag.Node {
+	return p.Forward(encoded...)
 }
