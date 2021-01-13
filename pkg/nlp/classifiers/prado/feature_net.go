@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	_ nn.Model     = &FeatureNet{}
-	_ nn.Processor = &FeatureNetProcessor{}
+	_ nn.Model = &FeatureNet{}
 )
 
 type FeatureNetConfig struct {
@@ -32,8 +31,9 @@ type FeatureNetConfig struct {
 }
 
 type FeatureNet struct {
-	config            FeatureNetConfig
-	convolutionModels []*convolution.Model
+	nn.BaseModel
+	Config            FeatureNetConfig
+	ConvolutionModels []*convolution.Model
 }
 
 func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
@@ -146,63 +146,63 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 		})
 	}
 	return &FeatureNet{
-		config:            config,
-		convolutionModels: convolutionModels,
+		Config:            config,
+		ConvolutionModels: convolutionModels,
 	}
 }
 
-type FeatureNetProcessor struct {
-	nn.BaseProcessor
-	convolutionProcessors []*convolution.Processor
-}
+//type FeatureNetProcessor struct {
+//	nn.BaseProcessor
+//	convolutionProcessors []*convolution.Processor
+//}
+//
+//func (m *FeatureNet) NewProc(ctx nn.Context) nn.Processor {
+//	nChannels := m.config.UnigramsChannels + m.config.BigramsChannels + m.config.TrigramsChannels + m.config.FourgramsChannels +
+//		m.config.FivegramsChannels + m.config.Skip1BigramsChannels + m.config.Skip1TrigramsChannels +
+//		m.config.Skip2BigramsChannels
+//	convNetProc := make([]*convolution.Processor, nChannels)
+//	c := 0
+//	for n := 0; n < nChannels; n++ {
+//		convNetProc[n] = m.convolutionModels[c+n].NewProc(ctx).(*convolution.Processor)
+//	}
+//	return &FeatureNetProcessor{
+//		BaseProcessor: nn.BaseProcessor{
+//			Model:             m,
+//			Mode:              nn.Training,
+//			Graph:             ctx.Graph,
+//			FullSeqProcessing: true,
+//		},
+//		convolutionProcessors: convNetProc,
+//	}
+//}
 
-func (m *FeatureNet) NewProc(ctx nn.Context) nn.Processor {
-	nChannels := m.config.UnigramsChannels + m.config.BigramsChannels + m.config.TrigramsChannels + m.config.FourgramsChannels +
-		m.config.FivegramsChannels + m.config.Skip1BigramsChannels + m.config.Skip1TrigramsChannels +
-		m.config.Skip2BigramsChannels
-	convNetProc := make([]*convolution.Processor, nChannels)
-	c := 0
-	for n := 0; n < nChannels; n++ {
-		convNetProc[n] = m.convolutionModels[c+n].NewProc(ctx).(*convolution.Processor)
-	}
-	return &FeatureNetProcessor{
-		BaseProcessor: nn.BaseProcessor{
-			Model:             m,
-			Mode:              nn.Training,
-			Graph:             ctx.Graph,
-			FullSeqProcessing: true,
-		},
-		convolutionProcessors: convNetProc,
-	}
-}
-
-func (p *FeatureNetProcessor) calculateAttention(xs []ag.Node) []ag.Node {
+func (p *FeatureNet) calculateAttention(xs []ag.Node) []ag.Node {
 	attention := make([]ag.Node, len(xs))
-	sum := p.Graph.Exp(xs[0])
+	sum := p.Graph().Exp(xs[0])
 	for i := 1; i < len(xs); i++ {
-		sum = p.Graph.Add(sum, p.Graph.Exp(xs[i]))
+		sum = p.Graph().Add(sum, p.Graph().Exp(xs[i]))
 	}
 	for i := 0; i < len(xs); i++ {
-		attention[i] = p.Graph.Div(p.Graph.Exp(xs[i]), sum)
+		attention[i] = p.Graph().Div(p.Graph().Exp(xs[i]), sum)
 	}
 	return attention
 }
 
-func (p *FeatureNetProcessor) encodeNgrams(a [][]int, c, ngramSize, channels int, attentioNet bool, out [][]ag.Node, xs ...ag.Node) {
+func (p *FeatureNet) encodeNgrams(a [][]int, c, ngramSize, channels int, attentioNet bool, out [][]ag.Node, xs ...ag.Node) {
 	for n := 0; n < channels; n++ {
 		fn := make([]ag.Node, len(a))
 		for i, ngram := range a {
 			switch ngramSize {
 			case 1:
-				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]])[0]
+				fn[i] = p.ConvolutionModels[c+n].Forward(xs[ngram[0]])[0]
 			case 2:
-				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]])[0]
+				fn[i] = p.ConvolutionModels[c+n].Forward(xs[ngram[0]], xs[ngram[1]])[0]
 			case 3:
-				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]])[0]
+				fn[i] = p.ConvolutionModels[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]])[0]
 			case 4:
-				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]], xs[ngram[3]])[0]
+				fn[i] = p.ConvolutionModels[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]], xs[ngram[3]])[0]
 			case 5:
-				fn[i] = p.convolutionProcessors[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]], xs[ngram[3]], xs[ngram[4]])[0]
+				fn[i] = p.ConvolutionModels[c+n].Forward(xs[ngram[0]], xs[ngram[1]], xs[ngram[2]], xs[ngram[3]], xs[ngram[4]])[0]
 			}
 
 		}
@@ -213,11 +213,11 @@ func (p *FeatureNetProcessor) encodeNgrams(a [][]int, c, ngramSize, channels int
 	}
 }
 
-func (p *FeatureNetProcessor) Encode(config FeatureNetConfig, xs ...ag.Node) [][]ag.Node {
+func (p *FeatureNet) Encode(config FeatureNetConfig, xs ...ag.Node) [][]ag.Node {
 
-	nChannels := config.UnigramsChannels + config.BigramsChannels + config.TrigramsChannels + config.FourgramsChannels +
-		config.FivegramsChannels + config.Skip1BigramsChannels + config.Skip1TrigramsChannels +
-		config.Skip2BigramsChannels
+	nChannels := p.Config.UnigramsChannels + p.Config.BigramsChannels + p.Config.TrigramsChannels + p.Config.FourgramsChannels +
+		p.Config.FivegramsChannels + p.Config.Skip1BigramsChannels + p.Config.Skip1TrigramsChannels +
+		p.Config.Skip2BigramsChannels
 	out := make([][]ag.Node, nChannels)
 	unigrams := data.GenerateNGrams(1, len(xs))
 	bigrams := data.GenerateNGrams(2, len(xs))
@@ -225,24 +225,24 @@ func (p *FeatureNetProcessor) Encode(config FeatureNetConfig, xs ...ag.Node) [][
 	fourgrams := data.GenerateNGrams(4, len(xs))
 	fivgrams := data.GenerateNGrams(5, len(xs))
 	c := 0
-	p.encodeNgrams(unigrams, c, 1, config.UnigramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(unigrams, c, 1, p.Config.UnigramsChannels, config.AttentionNet, out, xs...)
 	c += config.UnigramsChannels
-	p.encodeNgrams(bigrams, c, 2, config.BigramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(bigrams, c, 2, p.Config.BigramsChannels, config.AttentionNet, out, xs...)
 	c += config.BigramsChannels
-	p.encodeNgrams(trigrams, c, 3, config.TrigramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(trigrams, c, 3, p.Config.TrigramsChannels, config.AttentionNet, out, xs...)
 	c += config.TrigramsChannels
-	p.encodeNgrams(fourgrams, c, 4, config.FourgramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fourgrams, c, 4, p.Config.FourgramsChannels, config.AttentionNet, out, xs...)
 	c += config.FourgramsChannels
-	p.encodeNgrams(fivgrams, c, 5, config.FivegramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fivgrams, c, 5, p.Config.FivegramsChannels, config.AttentionNet, out, xs...)
 	c += config.FivegramsChannels
-	p.encodeNgrams(trigrams, c, 3, config.Skip1BigramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(trigrams, c, 3, p.Config.Skip1BigramsChannels, config.AttentionNet, out, xs...)
 	c += config.Skip1BigramsChannels
-	p.encodeNgrams(fourgrams, c, 4, config.Skip2BigramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fourgrams, c, 4, p.Config.Skip2BigramsChannels, config.AttentionNet, out, xs...)
 	c += config.Skip2BigramsChannels
-	p.encodeNgrams(fourgrams, c, 4, config.Skip1TrigramsChannels, config.AttentionNet, out, xs...)
+	p.encodeNgrams(fourgrams, c, 4, p.Config.Skip1TrigramsChannels, config.AttentionNet, out, xs...)
 	return out
 }
 
-func (p *FeatureNetProcessor) Forward(_ ...ag.Node) []ag.Node {
-	panic("Prado: Forward() method not implemented. Use Encode() instead.")
-}
+//func (p *FeatureNetProcessor) Forward(_ ...ag.Node) []ag.Node {
+//	panic("Prado: Forward() method not implemented. Use Encode() instead.")
+//}
