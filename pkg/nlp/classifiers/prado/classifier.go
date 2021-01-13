@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	_ nn.Model     = &Classifier{}
-	_ nn.Processor = &ClassifierProcessor{}
+	_ nn.Model = &Classifier{}
 )
 
 type ClassifierConfig struct {
@@ -24,6 +23,7 @@ type ClassifierConfig struct {
 }
 
 type Classifier struct {
+	nn.BaseModel
 	config ClassifierConfig
 	*stack.Model
 }
@@ -38,17 +38,17 @@ func NewPradoClassifier(config ClassifierConfig) *Classifier {
 	}
 }
 
-type ClassifierProcessor struct {
-	*stack.Processor
-}
-
-func (m *Classifier) NewProc(ctx nn.Context) nn.Processor {
-	return &ClassifierProcessor{
-		Processor: m.Model.NewProc(ctx).(*stack.Processor),
-	}
-}
+//type ClassifierProcessor struct {
+//	*stack.Processor
+//}
+//
+//func (m *Classifier) NewProc(ctx nn.Context) nn.Processor {
+//	return &ClassifierProcessor{
+//		Processor: m.Model.NewProc(ctx).(*stack.Processor),
+//	}
+//}
 
 // Predicts return the logits.
-func (p *ClassifierProcessor) Predict(xs []ag.Node) []ag.Node {
+func (p *Classifier) Predict(xs []ag.Node) []ag.Node {
 	return p.Forward(xs...)
 }
