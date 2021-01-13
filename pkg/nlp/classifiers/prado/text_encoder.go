@@ -21,21 +21,6 @@ func NewPradoTextEncoder() *TextEncoder {
 	return &TextEncoder{}
 }
 
-//type TextEncoderProcessor struct {
-//	nn.BaseProcessor
-//}
-//
-//func (m *TextEncoder) NewProc(ctx nn.Context) nn.Processor {
-//	return &TextEncoderProcessor{
-//		BaseProcessor: nn.BaseProcessor{
-//			Model:             m,
-//			Mode:              nn.Training,
-//			Graph:             ctx.Graph,
-//			FullSeqProcessing: true,
-//		},
-//	}
-//}
-
 func (p *TextEncoder) Encode(projectedFeatures [][]ag.Node, attentionFeatures [][]ag.Node) ag.Node {
 	e := make([]ag.Node, len(projectedFeatures))
 	for channel, projectedFeature := range projectedFeatures {
@@ -47,7 +32,3 @@ func (p *TextEncoder) Encode(projectedFeatures [][]ag.Node, attentionFeatures []
 	}
 	return p.Graph().Concat(e...)
 }
-
-//func (p *TextEncoderProcessor) Forward(_ ...ag.Node) []ag.Node {
-//	panic("Prado: Forward() method not implemented. Use Encode() instead.")
-//}

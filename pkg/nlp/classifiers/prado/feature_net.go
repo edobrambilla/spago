@@ -151,31 +151,6 @@ func NewFeatureNet(config FeatureNetConfig) *FeatureNet {
 	}
 }
 
-//type FeatureNetProcessor struct {
-//	nn.BaseProcessor
-//	convolutionProcessors []*convolution.Processor
-//}
-//
-//func (m *FeatureNet) NewProc(ctx nn.Context) nn.Processor {
-//	nChannels := m.config.UnigramsChannels + m.config.BigramsChannels + m.config.TrigramsChannels + m.config.FourgramsChannels +
-//		m.config.FivegramsChannels + m.config.Skip1BigramsChannels + m.config.Skip1TrigramsChannels +
-//		m.config.Skip2BigramsChannels
-//	convNetProc := make([]*convolution.Processor, nChannels)
-//	c := 0
-//	for n := 0; n < nChannels; n++ {
-//		convNetProc[n] = m.convolutionModels[c+n].NewProc(ctx).(*convolution.Processor)
-//	}
-//	return &FeatureNetProcessor{
-//		BaseProcessor: nn.BaseProcessor{
-//			Model:             m,
-//			Mode:              nn.Training,
-//			Graph:             ctx.Graph,
-//			FullSeqProcessing: true,
-//		},
-//		convolutionProcessors: convNetProc,
-//	}
-//}
-
 func (p *FeatureNet) calculateAttention(xs []ag.Node) []ag.Node {
 	attention := make([]ag.Node, len(xs))
 	sum := p.Graph().Exp(xs[0])
@@ -242,7 +217,3 @@ func (p *FeatureNet) Encode(config FeatureNetConfig, xs ...ag.Node) [][]ag.Node 
 	p.encodeNgrams(fourgrams, c, 4, p.Config.Skip1TrigramsChannels, config.AttentionNet, out, xs...)
 	return out
 }
-
-//func (p *FeatureNetProcessor) Forward(_ ...ag.Node) []ag.Node {
-//	panic("Prado: Forward() method not implemented. Use Encode() instead.")
-//}

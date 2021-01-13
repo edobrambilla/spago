@@ -14,12 +14,13 @@ require (
 	github.com/nlpodyssey/gopickle v0.1.0
 	github.com/nlpodyssey/gotokenizers v0.2.0
 	github.com/pkg/errors v0.8.1
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/urfave/cli v1.22.4
 	golang.org/x/exp v0.0.0-20191227195350-da58074b4299
 	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11 // indirect
 	golang.org/x/sys v0.0.0-20201211090839-8ad439b19e0f // indirect
 	golang.org/x/text v0.3.4 // indirect
+	gonum.org/v1/gonum v0.8.2
 	google.golang.org/genproto v0.0.0-20201211151036-40ec1c210f7a // indirect
 	google.golang.org/grpc v1.34.0
 	google.golang.org/protobuf v1.25.0

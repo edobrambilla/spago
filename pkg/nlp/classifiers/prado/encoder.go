@@ -37,16 +37,6 @@ func NewPradoEncoder(config EncoderConfig) *Encoder {
 	}
 }
 
-//type EncoderProcessor struct {
-//	*stack.Processor
-//}
-//
-//func (m *Encoder) NewProc(ctx nn.Context) nn.Processor {
-//	return &EncoderProcessor{
-//		Processor: m.Model.NewProc(ctx).(*stack.Processor),
-//	}
-//}
-
 func (p *Encoder) Encode(encoded []ag.Node) []ag.Node {
 	return p.Forward(encoded...)
 }

@@ -64,21 +64,6 @@ func (m *Embeddings) SetProjectedEmbeddings(codes map[string]mat32.Matrix) {
 	}
 }
 
-//func (m *Embeddings) NewProc(ctx nn.Context) nn.Processor {
-//	graph := ctx.Graph
-//	return &EmbeddingsProcessor{
-//		BaseProcessor: nn.BaseProcessor{
-//			Model:             m,
-//			Mode:              nn.Training,
-//			Graph:             graph,
-//			FullSeqProcessing: false,
-//		},
-//		model:            m,
-//		wordsLayer:       m.Word.NewProc(ctx).(*embeddings.Processor),
-//		unknownEmbedding: graph.NewWrap(graph.NewVariable(m.Projection.GetHash(mat.NewInitDense(m.Size, 1, -1.0)), false)),
-//	}
-//}
-
 func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 	encoded := make([]ag.Node, len(words))
 	wordEmbeddings := p.getWordEmbeddings(words)
@@ -115,7 +100,3 @@ func digit(num, place int) int {
 func (p *Embeddings) getWordEmbeddings(words []string) []ag.Node {
 	return p.Word.Encode(words)
 }
-
-//func (p *EmbeddingsProcessor) Forward(_ ...ag.Node) []ag.Node {
-//	panic("Prado: Forward() method not implemented. Use EmbedSequence() instead.")
-//}

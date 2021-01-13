@@ -192,33 +192,6 @@ func initConvolution(models []*convolution.Model, rndGen *rand.LockedRand) {
 
 }
 
-//type Processor struct {
-//	nn.BaseProcessor
-//	Embeddings   *EmbeddingsProcessor
-//	Encoder      *EncoderProcessor
-//	AttentionNet *FeatureNetProcessor
-//	FeatureNet   *FeatureNetProcessor
-//	TextEncoder  *TextEncoderProcessor
-//	Classifier   *ClassifierProcessor
-//}
-//
-//func (m *Model) NewProc(ctx nn.Context) nn.Processor {
-//	return &Processor{
-//		BaseProcessor: nn.BaseProcessor{
-//			Model:             m,
-//			Mode:              nn.Training,
-//			Graph:             ctx.Graph,
-//			FullSeqProcessing: true,
-//		},
-//		Embeddings:   m.Embeddings.NewProc(ctx).(*EmbeddingsProcessor),
-//		Encoder:      m.Encoder.NewProc(ctx).(*EncoderProcessor),
-//		AttentionNet: m.FeatureNet.NewProc(ctx).(*FeatureNetProcessor),
-//		FeatureNet:   m.FeatureNet.NewProc(ctx).(*FeatureNetProcessor),
-//		TextEncoder:  m.TextEncoder.NewProc(ctx).(*TextEncoderProcessor),
-//		Classifier:   m.Classifier.NewProc(ctx).(*ClassifierProcessor),
-//	}
-//}
-
 func (p *Model) Forward(tokens []string) []ag.Node {
 	e := p.Embeddings.EmbedSequence(tokens)
 	encodedSequence := p.Encoder.Encode(e)
@@ -228,7 +201,3 @@ func (p *Model) Forward(tokens []string) []ag.Node {
 	output := p.Classifier.Forward(textEncoding)
 	return output
 }
-
-//func (p *Processor) Forward(_ ...ag.Node) []ag.Node {
-//	panic("prado: method not implemented")
-//}

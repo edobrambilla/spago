@@ -38,16 +38,6 @@ func NewPradoClassifier(config ClassifierConfig) *Classifier {
 	}
 }
 
-//type ClassifierProcessor struct {
-//	*stack.Processor
-//}
-//
-//func (m *Classifier) NewProc(ctx nn.Context) nn.Processor {
-//	return &ClassifierProcessor{
-//		Processor: m.Model.NewProc(ctx).(*stack.Processor),
-//	}
-//}
-
 // Predicts return the logits.
 func (p *Classifier) Predict(xs []ag.Node) []ag.Node {
 	return p.Forward(xs...)
