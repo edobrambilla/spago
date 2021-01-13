@@ -10,43 +10,44 @@ import (
 )
 
 var (
-	_ nn.Model     = &TextEncoder{}
-	_ nn.Processor = &TextEncoderProcessor{}
+	_ nn.Model = &TextEncoder{}
 )
 
-type TextEncoder struct{}
+type TextEncoder struct {
+	nn.BaseModel
+}
 
 func NewPradoTextEncoder() *TextEncoder {
 	return &TextEncoder{}
 }
 
-type TextEncoderProcessor struct {
-	nn.BaseProcessor
-}
+//type TextEncoderProcessor struct {
+//	nn.BaseProcessor
+//}
+//
+//func (m *TextEncoder) NewProc(ctx nn.Context) nn.Processor {
+//	return &TextEncoderProcessor{
+//		BaseProcessor: nn.BaseProcessor{
+//			Model:             m,
+//			Mode:              nn.Training,
+//			Graph:             ctx.Graph,
+//			FullSeqProcessing: true,
+//		},
+//	}
+//}
 
-func (m *TextEncoder) NewProc(ctx nn.Context) nn.Processor {
-	return &TextEncoderProcessor{
-		BaseProcessor: nn.BaseProcessor{
-			Model:             m,
-			Mode:              nn.Training,
-			Graph:             ctx.Graph,
-			FullSeqProcessing: true,
-		},
-	}
-}
-
-func (p *TextEncoderProcessor) Encode(projectedFeatures [][]ag.Node, attentionFeatures [][]ag.Node) ag.Node {
+func (p *TextEncoder) Encode(projectedFeatures [][]ag.Node, attentionFeatures [][]ag.Node) ag.Node {
 	e := make([]ag.Node, len(projectedFeatures))
 	for channel, projectedFeature := range projectedFeatures {
 		en := projectedFeature[0]
 		for i := 1; i < len(projectedFeature); i++ {
-			en = p.Graph.Add(en, p.Graph.Prod(projectedFeature[i], attentionFeatures[channel][i]))
+			en = p.Graph().Add(en, p.Graph().Prod(projectedFeature[i], attentionFeatures[channel][i]))
 		}
 		e[channel] = en
 	}
-	return p.Graph.Concat(e...)
+	return p.Graph().Concat(e...)
 }
 
-func (p *TextEncoderProcessor) Forward(_ ...ag.Node) []ag.Node {
-	panic("Prado: Forward() method not implemented. Use Encode() instead.")
-}
+//func (p *TextEncoderProcessor) Forward(_ ...ag.Node) []ag.Node {
+//	panic("Prado: Forward() method not implemented. Use Encode() instead.")
+//}
