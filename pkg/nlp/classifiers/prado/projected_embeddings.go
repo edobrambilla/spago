@@ -47,14 +47,6 @@ func NewPradoEmbeddings(config EmbeddingsConfig) *Embeddings {
 	}
 }
 
-//type EmbeddingsProcessor struct {
-//	nn.BaseProcessor
-//	model               *Embeddings
-//	wordsLayer          *embeddings.Processor
-//	tokenTypeEmbeddings []ag.Node
-//	unknownEmbedding    ag.Node
-//}
-
 // Set Embeddings from a map of string into matrix. Codes may be calculated from string ascii, bytes or
 // other type of embeddings
 func (m *Embeddings) SetProjectedEmbeddings(codes map[string]mat32.Matrix) {

@@ -142,7 +142,7 @@ func (t *Trainer) newTrainBar(progress *uiprogress.Progress, nexamples int) *uip
 }
 
 func (t *Trainer) Enjoy() {
-	for epoch := 0; epoch < t.Epochs; epoch++ {
+	for epoch := 1; epoch <= t.Epochs; epoch++ {
 		t.curEpoch = epoch
 		t.optimizer.IncEpoch()
 

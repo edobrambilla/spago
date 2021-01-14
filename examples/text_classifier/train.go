@@ -74,7 +74,7 @@ func newTestModel() *prado.Model {
 		ConvActivation:        "Identity",
 		ConvSize:              4,
 		InputSize:             30,
-		ProjectionSize:        128,
+		ProjectionSize:        256,
 		ProjectionArity:       3,
 		EncodingSize:          96,
 		UnigramsChannels:      1,
