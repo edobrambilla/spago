@@ -6,13 +6,11 @@ package nn
 
 import (
 	"bytes"
-	"encoding/gob"
-	"log"
-	"sync"
-
 	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/utils/kvdb"
+	"log"
+	"sync"
 )
 
 // Param is the interface for a Model parameter.
@@ -54,20 +52,6 @@ func (ps Params) Nodes() []ag.Node {
 	return ns
 }
 
-// Payload contains the support data used for example by the optimization methods
-type Payload struct {
-	Label int
-	Data  []mat.Matrix
-}
-
-// NewEmptySupport returns an empty support structure, not connected to any optimization method.
-func NewEmptySupport() *Payload {
-	return &Payload{
-		Label: 0, // important set the label to zero
-		Data:  make([]mat.Matrix, 0),
-	}
-}
-
 var _ Param = &param{}
 
 type param struct {
@@ -79,7 +63,7 @@ type param struct {
 	payload      *Payload   // additional data used for example by gradient-descend optimization methods
 	hasGrad      bool
 	requiresGrad bool
-	storage      kvdb.KeyValueDB // default nil
+	storage      *kvdb.KeyValueDB // default nil
 }
 
 // ParamOption allows to configure a new Param with your specific needs.
@@ -95,7 +79,7 @@ func RequiresGrad(value bool) ParamOption {
 // SetStorage is an option to specify a kvdb.KeyValueDB storage.
 // This is useful, for example, for a memory-efficient embeddings
 // Param implementation.
-func SetStorage(storage kvdb.KeyValueDB) ParamOption {
+func SetStorage(storage *kvdb.KeyValueDB) ParamOption {
 	return func(p *param) {
 		p.storage = storage
 	}
@@ -250,37 +234,17 @@ func (r *param) updateStorage() {
 	if r.storage == nil {
 		return
 	}
-	var buf bytes.Buffer
-	if _, err := (&ParamSerializer{param: r}).Serialize(&buf); err != nil {
-		log.Fatal(err)
-	}
-	if err := r.storage.Put([]byte(r.name), buf.Bytes()); err != nil {
-		log.Fatal(err)
-	}
-}
 
-// MarshalBinary satisfies package pkg/encoding/gob custom marshaling interface
-func (r *param) MarshalBinary() ([]byte, error) {
-	var b bytes.Buffer
-	_, err := mat.MarshalBinaryTo(r.value, &b)
+	buf := new(bytes.Buffer)
+	err := MarshalBinaryParam(r, buf)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
-	return b.Bytes(), nil
-}
 
-// UnmarshalBinary satisfies pkg/encoding/gob custom marshaling interface
-func (r *param) UnmarshalBinary(data []byte) error {
-	b := bytes.NewBuffer(data)
-	value, _, err := mat.NewUnmarshalBinaryFrom(b)
-	r.value = value
-	return err
-}
-
-// init registers the param implementation with the gob subsystem - so that it knows how to encode and decode
-// values of type nn.Param
-func init() {
-	gob.Register(&param{})
+	err = r.storage.Put([]byte(r.name), buf.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // Graph returns always nil since the "pure" parameter is not associated with any graph.

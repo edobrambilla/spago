@@ -9,7 +9,7 @@
 package evolvingembeddings
 
 import (
-	"bytes"
+	"encoding/gob"
 	mat "github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
@@ -29,7 +29,7 @@ var allModels []*Model
 type Model struct {
 	nn.BaseModel
 	Config
-	Storage       kvdb.KeyValueDB
+	Storage       *kvdb.KeyValueDB
 	Mu            sync.Mutex
 	ZeroEmbedding nn.Param `spago:"type:weights"`
 }
@@ -56,6 +56,10 @@ type Config struct {
 	DBPath string
 	// Whether to force the deletion of any existing DB to start with an empty embeddings mam.
 	ForceNewDB bool
+}
+
+func init() {
+	gob.Register(&Model{})
 }
 
 // New returns a new embedding Model.
@@ -133,11 +137,17 @@ func (m *Model) pooling(a, b *mat.Dense) *mat.Dense {
 // SetEmbeddings inserts a new word embeddings.
 // If the word is already on the map, overwrites the existing value with the new one.
 func (m *Model) setEmbedding(word string, value *mat.Dense) {
-	var buf bytes.Buffer
-	if _, err := mat.MarshalBinaryTo(value, &buf); err != nil {
-		log.Fatal(err)
+	var err error
+	var data []byte = nil
+
+	if value != nil {
+		data, err = value.MarshalBinary()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	if err := m.Storage.Put([]byte(word), buf.Bytes()); err != nil {
+
+	if err := m.Storage.Put([]byte(word), data); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -164,10 +174,12 @@ func (m *Model) getEmbeddingExactMatch(word string) *mat.Dense {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if !ok {
-		return nil // embedding not found
+	if !ok || data == nil {
+		return nil // embedding not found, or nil Dense matrix
 	}
-	embedding, _, err := mat.NewUnmarshalBinaryFrom(bytes.NewReader(data))
+
+	embedding := new(mat.Dense)
+	err = embedding.UnmarshalBinary(data)
 	if err != nil {
 		log.Fatal(err)
 	}

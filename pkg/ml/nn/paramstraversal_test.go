@@ -6,7 +6,9 @@ package nn
 
 import (
 	mat "github.com/nlpodyssey/spago/pkg/mat32"
+	"github.com/nlpodyssey/spago/pkg/nlp/embeddings/syncmap"
 	"reflect"
+	"sync"
 	"testing"
 )
 
@@ -328,6 +330,52 @@ func TestParamsTraversal(t *testing.T) {
 		pt.walk(m)
 
 		expected := []Param{m.MS.P, m.MP.P}
+		assertEqual(t, tt.CollectedParams, expected)
+	})
+
+	t.Run("it visits Param items in params-annotated sync.Map fields", func(t *testing.T) {
+		t.Parallel()
+
+		type TestModel struct {
+			ParamsTraversalBaseModel
+			MS *sync.Map `spago:"type:params"`
+		}
+
+		m := &TestModel{
+			MS: &sync.Map{},
+		}
+		m.MS.Store("a", NewParam(mat.NewScalar(3)))
+
+		tt := NewParamsTraversalTester()
+
+		pt := newParamsTraversal(tt.collect, false)
+		pt.walk(m)
+
+		p, _ := m.MS.Load("a")
+		expected := []Param{p.(Param)}
+		assertEqual(t, tt.CollectedParams, expected)
+	})
+
+	t.Run("it visits Param items in params-annotated embeddings.syncmap.Map fields", func(t *testing.T) {
+		t.Parallel()
+
+		type TestModel struct {
+			ParamsTraversalBaseModel
+			MS *syncmap.Map `spago:"type:params"`
+		}
+
+		m := &TestModel{
+			MS: syncmap.New(),
+		}
+		m.MS.Store("a", NewParam(mat.NewScalar(3)))
+
+		tt := NewParamsTraversalTester()
+
+		pt := newParamsTraversal(tt.collect, false)
+		pt.walk(m)
+
+		p, _ := m.MS.Load("a")
+		expected := []Param{p.(Param)}
 		assertEqual(t, tt.CollectedParams, expected)
 	})
 }

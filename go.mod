@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/dgraph-io/badger/v2 v2.0.3
 	github.com/dustin/go-humanize v1.0.0
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/gosuri/uilive v0.0.4 // indirect
 	github.com/gosuri/uiprogress v0.0.1
 	github.com/lithammer/fuzzysearch v1.1.0
@@ -20,7 +20,6 @@ require (
 	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11 // indirect
 	golang.org/x/sys v0.0.0-20201211090839-8ad439b19e0f // indirect
 	golang.org/x/text v0.3.4 // indirect
-	gonum.org/v1/gonum v0.8.2
 	google.golang.org/genproto v0.0.0-20201211151036-40ec1c210f7a // indirect
 	google.golang.org/grpc v1.34.0
 	google.golang.org/protobuf v1.25.0
