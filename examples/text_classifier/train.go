@@ -59,7 +59,7 @@ func main() {
 	t := trainer.NewTrainer(model, config, optimizer)
 	//get vocabulary
 	v := t.GetVocabulary()
-	vocabularyCodes := getHashedVocabulary(v)
+	vocabularyCodes := getHashedVocabulary(v, model.Embeddings.EmbeddingsConfig)
 	model.Vocabulary = v
 	model.Embeddings.SetProjectedEmbeddings(vocabularyCodes)
 	print(v.Size())
@@ -71,10 +71,10 @@ func main() {
 func newTestModel() *prado.Model {
 	config := prado.Config{
 		EncodingActivation:    "ReLU",
-		ConvActivation:        "Identity",
+		ConvActivation:        "ReLU",
 		ConvSize:              4,
 		InputSize:             30,
-		ProjectionSize:        256,
+		ProjectionSize:        128,
 		ProjectionArity:       3,
 		EncodingSize:          96,
 		UnigramsChannels:      1,
@@ -99,11 +99,21 @@ func newTestModel() *prado.Model {
 	return prado.NewDefaultPrado(config, "path")
 }
 
-func getStringCode(s string) mat32.Matrix {
-	out := mat32.NewEmptyVecDense(30)
+func getHashCode(config prado.EmbeddingsConfig) mat32.Matrix {
+	out := mat32.NewEmptyVecDense(config.InputSize)
+	c := 0
+	for i := 0; i < config.InputSize; i++ {
+		out.Data()[c] = (rand.Float() * 2.0) - 1.0
+		c++
+	}
+	return out //.ProdScalar(0.1)
+}
+
+func getStringCode(s string, config prado.EmbeddingsConfig) mat32.Matrix {
+	out := mat32.NewEmptyVecDense(config.InputSize)
 	c := 0
 	for _, char := range s {
-		if c < 30 {
+		if c < config.InputSize {
 			for n := 1; n <= 3; n++ {
 				out.Data()[c] = mat32.Float(float64(digit(int(char), n)))
 				c++
@@ -113,27 +123,16 @@ func getStringCode(s string) mat32.Matrix {
 	return out.ProdScalar(0.1)
 }
 
-func getHashCode(random *rand.LockedRand) mat32.Matrix {
-	out := mat32.NewEmptyVecDense(30)
-	c := 0
-	for i := 0; i < 30; i++ {
-		out.Data()[c] = (random.Float32() * 2.0) - 1.0
-		c++
-	}
-	return out //.ProdScalar(0.1)
-}
-
 func digit(num, place int) int {
 	r := num % int(math.Pow(10, float64(place)))
 	return r / int(math.Pow(10, float64(place-1)))
 }
 
-func getHashedVocabulary(vocabulary *vocabulary.Vocabulary) map[string]mat32.Matrix {
+func getHashedVocabulary(vocabulary *vocabulary.Vocabulary, config prado.EmbeddingsConfig) map[string]mat32.Matrix {
 	var outMap map[string]mat32.Matrix
 	outMap = make(map[string]mat32.Matrix)
-	r := rand.NewLockedRand(750)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getHashCode(r)
+		outMap[word] = getHashCode(config)
 	}
 	return outMap
 }

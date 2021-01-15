@@ -16,7 +16,7 @@ var (
 )
 
 type EmbeddingsConfig struct {
-	Size                int
+	InputSize           int
 	ProjectionSize      int
 	ProjectionArity     int
 	WordsMapFilename    string
@@ -41,7 +41,7 @@ func NewPradoEmbeddings(config EmbeddingsConfig) *Embeddings {
 			UseZeroEmbedding: false,
 		}),
 		Projection: hashing.New(
-			config.Size,           //input size
+			config.InputSize,      //input size
 			config.ProjectionSize, // output (projection) vectors size. These are the embeddings
 			config.ProjectionArity),
 	}
@@ -64,7 +64,7 @@ func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 		if wordEmbeddings[i] != nil {
 			encoded[i] = p.Graph().NewWrapNoGrad(wordEmbeddings[i])
 		} else {
-			code := getHashCode(words[i])
+			code := getHashCode(p.EmbeddingsConfig)
 			encoded[i] = p.Graph().NewVariable(p.Projection.GetHash(code), false)
 		}
 		if words[i] == wordpiecetokenizer.DefaultSequenceSeparator {
@@ -74,14 +74,28 @@ func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 	return encoded
 }
 
-func getHashCode(s string) mat32.Matrix {
-	out := mat32.NewEmptyVecDense(30)
+func getHashCode(config EmbeddingsConfig) mat32.Matrix {
+	out := mat32.NewEmptyVecDense(config.InputSize)
 	c := 0
-	for i := 0; i < 30; i++ {
+	for i := 0; i < config.InputSize; i++ {
 		out.Data()[c] = (rand.Float32() * 2.0) - 1.0
 		c++
 	}
 	return out //.ProdScalar(0.1)
+}
+
+func getStringCode(s string, config EmbeddingsConfig) mat32.Matrix {
+	out := mat32.NewEmptyVecDense(config.InputSize)
+	c := 0
+	for _, char := range s {
+		if c < config.InputSize {
+			for n := 1; n <= 3; n++ {
+				out.Data()[c] = mat32.Float(float64(digit(int(char), n)))
+				c++
+			}
+		}
+	}
+	return out.ProdScalar(0.1)
 }
 
 func digit(num, place int) int {

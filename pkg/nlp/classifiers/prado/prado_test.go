@@ -16,8 +16,8 @@ import (
 func TestModel_Forward(t *testing.T) {
 	g := ag.NewGraph()
 	v := getVocabulary()
-	vocabularyCodes := getHashedVocabulary(v)
 	model := newTestModel()
+	vocabularyCodes := getHashedVocabulary(v, model.Embeddings.EmbeddingsConfig)
 	model.InitPradoParameters(rand.NewLockedRand(743))
 	model.Embeddings.SetProjectedEmbeddings(vocabularyCodes)
 	ctx := nn.Context{Graph: g, Mode: nn.Inference}
@@ -31,11 +31,11 @@ func TestModel_Forward(t *testing.T) {
 	}
 }
 
-func getHashedVocabulary(vocabulary *vocabulary.Vocabulary) map[string]mat32.Matrix {
+func getHashedVocabulary(vocabulary *vocabulary.Vocabulary, config EmbeddingsConfig) map[string]mat32.Matrix {
 	var outMap map[string]mat32.Matrix
 	outMap = make(map[string]mat32.Matrix)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getStringCode(word)
+		outMap[word] = getHashCode(config)
 	}
 	return outMap
 }
@@ -46,20 +46,20 @@ func getVocabulary() *vocabulary.Vocabulary {
 
 func newTestModel() *Model {
 	config := Config{
-		EncodingActivation:    "Identity",
-		ConvActivation:        "Tanh",
+		EncodingActivation:    "ReLU",
+		ConvActivation:        "Identity",
 		ConvSize:              4,
-		InputSize:             30,
-		ProjectionSize:        128,
+		InputSize:             6,
+		ProjectionSize:        16,
 		ProjectionArity:       3,
-		EncodingSize:          32,
+		EncodingSize:          8,
 		UnigramsChannels:      1,
 		BigramsChannels:       1,
 		TrigramsChannels:      1,
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
 		Skip1BigramsChannels:  1,
-		Skip2BigramsChannels:  0,
+		Skip2BigramsChannels:  1,
 		Skip1TrigramsChannels: 0,
 		TypeVocabSize:         0,
 		VocabSize:             5,
@@ -71,18 +71,4 @@ func newTestModel() *Model {
 		},
 	}
 	return NewDefaultPrado(config, "path")
-}
-
-func getStringCode(s string) mat32.Matrix {
-	out := mat32.NewEmptyVecDense(30)
-	c := 0
-	for _, char := range s {
-		if c < 30 {
-			for n := 1; n <= 3; n++ {
-				out.Data()[c] = mat32.Float(float64(digit(int(char), n)))
-				c++
-			}
-		}
-	}
-	return out.ProdScalar(0.1)
 }

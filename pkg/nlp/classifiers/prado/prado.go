@@ -95,7 +95,7 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 		Config:     config,
 		Vocabulary: nil,
 		Embeddings: NewPradoEmbeddings(EmbeddingsConfig{
-			Size:                config.InputSize,
+			InputSize:           config.InputSize,
 			ProjectionSize:      config.ProjectionSize,
 			ProjectionArity:     3,
 			WordsMapFilename:    embeddingsStoragePath,
