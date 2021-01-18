@@ -24,7 +24,7 @@ func NewPradoTextEncoder() *TextEncoder {
 func (p *TextEncoder) Encode(projectedFeatures [][]ag.Node, attentionFeatures [][]ag.Node) ag.Node {
 	e := make([]ag.Node, len(projectedFeatures))
 	for channel, projectedFeature := range projectedFeatures {
-		en := projectedFeature[0]
+		en := p.Graph().Prod(projectedFeature[0], attentionFeatures[channel][0])
 		for i := 1; i < len(projectedFeature); i++ {
 			en = p.Graph().Add(en, p.Graph().Prod(projectedFeature[i], attentionFeatures[channel][i]))
 		}
