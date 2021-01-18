@@ -152,7 +152,7 @@ func (t *Trainer) Enjoy() {
 		// evaluate here
 
 		// model serialization
-		err := utils.SerializeToFile(t.ModelPath, nn.NewParamsSerializer(t.model))
+		err := utils.SerializeToFile(t.ModelPath, t.model)
 		if err != nil {
 			panic("mnist: error during model serialization.")
 		}

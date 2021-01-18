@@ -71,7 +71,7 @@ func main() {
 func newTestModel() *prado.Model {
 	config := prado.Config{
 		EncodingActivation:    "ReLU",
-		ConvActivation:        "ReLU",
+		ConvActivation:        "Identity",
 		ConvSize:              4,
 		InputSize:             30,
 		ProjectionSize:        128,
@@ -99,11 +99,11 @@ func newTestModel() *prado.Model {
 	return prado.NewDefaultPrado(config, "path")
 }
 
-func getHashCode(config prado.EmbeddingsConfig) mat32.Matrix {
+func getHashCode(config prado.EmbeddingsConfig, r *rand.LockedRand) mat32.Matrix {
 	out := mat32.NewEmptyVecDense(config.InputSize)
 	c := 0
 	for i := 0; i < config.InputSize; i++ {
-		out.Data()[c] = (rand.Float() * 2.0) - 1.0
+		out.Data()[c] = (r.Float32() * 2.0) - 1.0
 		c++
 	}
 	return out //.ProdScalar(0.1)
@@ -131,8 +131,9 @@ func digit(num, place int) int {
 func getHashedVocabulary(vocabulary *vocabulary.Vocabulary, config prado.EmbeddingsConfig) map[string]mat32.Matrix {
 	var outMap map[string]mat32.Matrix
 	outMap = make(map[string]mat32.Matrix)
+	r := rand.NewLockedRand(40)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getHashCode(config)
+		outMap[word] = getHashCode(config, r)
 	}
 	return outMap
 }
