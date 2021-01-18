@@ -34,8 +34,9 @@ func TestModel_Forward(t *testing.T) {
 func getHashedVocabulary(vocabulary *vocabulary.Vocabulary, config EmbeddingsConfig) map[string]mat32.Matrix {
 	var outMap map[string]mat32.Matrix
 	outMap = make(map[string]mat32.Matrix)
+	r := rand.NewLockedRand(40)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getHashCode(config)
+		outMap[word] = getHashCode(config, r)
 	}
 	return outMap
 }
