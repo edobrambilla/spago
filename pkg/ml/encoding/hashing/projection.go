@@ -55,7 +55,7 @@ func quantization(n float64, narity int, min float64, max float64) float64 {
 			return 0.0
 		}
 	}
-	delta := math.Abs(max-min) / float64(narity)
+	delta := max - (math.Abs(max-min) / float64(narity))
 	if narity == 3 {
 		if n > delta {
 			return 1.0
@@ -72,7 +72,7 @@ func (d *Data) GetHash(input mat32.Matrix) *mat32.Dense {
 	out := mat32.NewEmptyVecDense(d.OutputSize)
 	for i := 0; i < d.OutputSize; i++ {
 		p := input.DotUnitary(d.W[i])
-		out.Data()[i] = float32(quantization(float64(p), d.Config.Narity, -1.0, 1.0))
+		out.Data()[i] = float32(quantization(float64(p), d.Config.Narity, -3.0, 3.0))
 	}
 	return out
 }

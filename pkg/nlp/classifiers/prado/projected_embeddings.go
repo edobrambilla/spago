@@ -2,13 +2,13 @@ package prado
 
 import (
 	"github.com/nlpodyssey/spago/pkg/mat32"
+	"github.com/nlpodyssey/spago/pkg/mat32/rand"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/encoding/hashing"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/nlp/embeddings"
 	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers/wordpiecetokenizer"
 	"math"
-	"math/rand"
 )
 
 var (
@@ -60,11 +60,12 @@ func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 	encoded := make([]ag.Node, len(words))
 	wordEmbeddings := p.getWordEmbeddings(words)
 	sequenceIndex := 0
+	r := rand.NewLockedRand(40)
 	for i := 0; i < len(words); i++ {
 		if wordEmbeddings[i] != nil {
 			encoded[i] = p.Graph().NewWrapNoGrad(wordEmbeddings[i])
 		} else {
-			code := getHashCode(p.EmbeddingsConfig)
+			code := getHashCode(p.EmbeddingsConfig, r)
 			encoded[i] = p.Graph().NewVariable(p.Projection.GetHash(code), false)
 		}
 		if words[i] == wordpiecetokenizer.DefaultSequenceSeparator {
@@ -74,11 +75,11 @@ func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 	return encoded
 }
 
-func getHashCode(config EmbeddingsConfig) mat32.Matrix {
+func getHashCode(config EmbeddingsConfig, r *rand.LockedRand) mat32.Matrix {
 	out := mat32.NewEmptyVecDense(config.InputSize)
 	c := 0
 	for i := 0; i < config.InputSize; i++ {
-		out.Data()[c] = (rand.Float32() * 2.0) - 1.0
+		out.Data()[c] = (r.Float32() * 2.0) - 1.0
 		c++
 	}
 	return out //.ProdScalar(0.1)
