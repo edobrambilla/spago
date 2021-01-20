@@ -20,19 +20,6 @@ import (
 	"os"
 )
 
-type TrainingConfig struct {
-	Seed             uint64
-	BatchSize        int
-	Epochs           int
-	GradientClipping float64
-	TrainCorpusPath  string
-	EvalCorpusPath   string
-	ModelPath        string
-	IncludeTitle     bool
-	IncludeBody      bool
-	LabelsMap        map[string]int
-}
-
 type PradoTrainer struct {
 	TrainingConfig
 	randGen       *rand.LockedRand
