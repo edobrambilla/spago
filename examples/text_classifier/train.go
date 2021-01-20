@@ -19,22 +19,8 @@ import (
 	"os"
 )
 
-func main() {
-	// go tool pprof http://localhost:6060/debug/pprof/profile
-	go func() { log.Println(http.ListenAndServe("localhost:6060", nil)) }()
-
-	modelPath := os.Args[1]
-	var trainingPath string
-	var testPath string
-	if len(os.Args) > 2 {
-		trainingPath = os.Args[2]
-	} else {
-		panic("Undefined training corpus path")
-	}
-	if len(os.Args) > 3 {
-		testPath = os.Args[3]
-	}
-	model := newTestModel()
+func pradoTrain(modelPath string, trainingPath string, testPath string) {
+	model := newPradoModel()
 	model.InitPradoParameters(rand.NewLockedRand(743))
 	updater := adam.New(adam.NewDefaultConfig())
 	optimizer := gd.NewOptimizer(updater, nn.NewDefaultParamsIterator(model))
@@ -56,19 +42,36 @@ func main() {
 			"05000000": 4,
 			"06000000": 5},
 	}
-	t := trainer.NewTrainer(model, config, optimizer)
+	t := trainer.NewPradoTrainer(model, config, optimizer)
 	//get vocabulary
 	v := t.GetVocabulary()
 	vocabularyCodes := getHashedVocabulary(v, model.Embeddings.EmbeddingsConfig)
 	model.Vocabulary = v
 	model.Embeddings.SetProjectedEmbeddings(vocabularyCodes)
-	print(v.Size())
-	// read dataset
+	println("Corpus examples: " + string(v.Size()))
 	t.Enjoy()
+}
+
+func main() {
+	// go tool pprof http://localhost:6060/debug/pprof/profile
+	go func() { log.Println(http.ListenAndServe("localhost:6060", nil)) }()
+
+	modelPath := os.Args[1]
+	var trainingPath string
+	var testPath string
+	if len(os.Args) > 2 {
+		trainingPath = os.Args[2]
+	} else {
+		panic("Undefined training corpus path")
+	}
+	if len(os.Args) > 3 {
+		testPath = os.Args[3]
+	}
+	pradoTrain(modelPath, trainingPath, testPath)
 
 }
 
-func newTestModel() *prado.Model {
+func newPradoModel() *prado.Model {
 	config := prado.Config{
 		EncodingActivation:    "ReLU",
 		ConvActivation:        "Identity",

@@ -33,7 +33,7 @@ type TrainingConfig struct {
 	LabelsMap        map[string]int
 }
 
-type Trainer struct {
+type PradoTrainer struct {
 	TrainingConfig
 	randGen       *rand.LockedRand
 	optimizer     *gd.GradientDescent
@@ -45,8 +45,8 @@ type Trainer struct {
 	curEpoch      int
 }
 
-func NewTrainer(model *prado.Model, config TrainingConfig, optimizer *gd.GradientDescent) *Trainer {
-	return &Trainer{
+func NewPradoTrainer(model *prado.Model, config TrainingConfig, optimizer *gd.GradientDescent) *PradoTrainer {
+	return &PradoTrainer{
 		TrainingConfig: config,
 		randGen:        rand.NewLockedRand(config.Seed),
 		optimizer:      optimizer,
@@ -54,7 +54,7 @@ func NewTrainer(model *prado.Model, config TrainingConfig, optimizer *gd.Gradien
 	}
 }
 
-func (t *Trainer) GetVocabulary() *vocabulary.Vocabulary {
+func (t *PradoTrainer) GetVocabulary() *vocabulary.Vocabulary {
 	out := vocabulary.New([]string{})
 	err := t.forEachLine(func(i int, text string) {
 		e := GetExample(text)
@@ -71,7 +71,7 @@ func (t *Trainer) GetVocabulary() *vocabulary.Vocabulary {
 	return out
 }
 
-func (t *Trainer) trainBatches(onExample func()) {
+func (t *PradoTrainer) trainBatches(onExample func()) {
 	err := t.forEachLine(func(i int, text string) {
 		//t.trainPassage(text)
 		e := GetExample(text)
@@ -91,7 +91,7 @@ func (t *Trainer) trainBatches(onExample func()) {
 }
 
 // learn performs the backward respect to the cross-entropy loss, returned as scalar value
-func (t *Trainer) learn(_ int, tokenizedExample []string, label int) float32 {
+func (t *PradoTrainer) learn(_ int, tokenizedExample []string, label int) float32 {
 	g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)))
 	c := nn.Context{Graph: g, Mode: nn.Training}
 	model := nn.Reify(c, t.model).(*prado.Model)
@@ -103,7 +103,7 @@ func (t *Trainer) learn(_ int, tokenizedExample []string, label int) float32 {
 	return loss.ScalarValue()
 }
 
-func (t *Trainer) forEachLine(callback func(i int, line string)) (err error) {
+func (t *PradoTrainer) forEachLine(callback func(i int, line string)) (err error) {
 	file, err := os.Open(t.TrainCorpusPath)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func (t *Trainer) forEachLine(callback func(i int, line string)) (err error) {
 	return
 }
 
-func (t *Trainer) newTrainBar(progress *uiprogress.Progress, nexamples int) *uiprogress.Bar {
+func (t *PradoTrainer) newTrainBar(progress *uiprogress.Progress, nexamples int) *uiprogress.Bar {
 	bar := progress.AddBar(nexamples)
 	bar.AppendCompleted().PrependElapsed()
 	bar.PrependFunc(func(b *uiprogress.Bar) string {
@@ -141,7 +141,7 @@ func (t *Trainer) newTrainBar(progress *uiprogress.Progress, nexamples int) *uip
 	return bar
 }
 
-func (t *Trainer) Enjoy() {
+func (t *PradoTrainer) Enjoy() {
 	for epoch := 1; epoch <= t.Epochs; epoch++ {
 		t.curEpoch = epoch
 		t.optimizer.IncEpoch()
@@ -159,7 +159,7 @@ func (t *Trainer) Enjoy() {
 	}
 }
 
-func (t *Trainer) trainEpoch() {
+func (t *PradoTrainer) trainEpoch() {
 	uip := uiprogress.New()
 	bar := t.newTrainBar(uip, t.countLines)
 	uip.Start() // start bar rendering
