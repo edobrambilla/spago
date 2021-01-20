@@ -60,12 +60,12 @@ func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 	encoded := make([]ag.Node, len(words))
 	wordEmbeddings := p.getWordEmbeddings(words)
 	sequenceIndex := 0
-	r := rand.NewLockedRand(40)
+	//r := rand.NewLockedRand(40)
 	for i := 0; i < len(words); i++ {
 		if wordEmbeddings[i] != nil {
 			encoded[i] = p.Graph().NewWrapNoGrad(wordEmbeddings[i])
 		} else {
-			code := getHashCode(p.EmbeddingsConfig, r)
+			code := getStringCode(words[i], p.EmbeddingsConfig)
 			encoded[i] = p.Graph().NewVariable(p.Projection.GetHash(code), false)
 		}
 		if words[i] == wordpiecetokenizer.DefaultSequenceSeparator {

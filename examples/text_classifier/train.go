@@ -131,9 +131,9 @@ func digit(num, place int) int {
 func getHashedVocabulary(vocabulary *vocabulary.Vocabulary, config prado.EmbeddingsConfig) map[string]mat32.Matrix {
 	var outMap map[string]mat32.Matrix
 	outMap = make(map[string]mat32.Matrix)
-	r := rand.NewLockedRand(40)
+	//r := rand.NewLockedRand(40)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getHashCode(config, r)
+		outMap[word] = getStringCode(word, config)
 	}
 	return outMap
 }
