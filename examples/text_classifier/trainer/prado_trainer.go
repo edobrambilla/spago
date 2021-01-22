@@ -136,8 +136,6 @@ func (t *PradoTrainer) Enjoy() {
 		fmt.Println("Training epoch...")
 		t.trainEpoch()
 
-		// evaluate here
-
 		// model serialization
 		err := utils.SerializeToFile(t.ModelPath, t.model)
 		if err != nil {
@@ -152,6 +150,6 @@ func (t *PradoTrainer) trainEpoch() {
 	uip.Start() // start bar rendering
 	t.trainBatches(func() { bar.Incr() })
 	uip.Stop()
-	precision := NewEvaluator(t.model, t.TrainingConfig).Evaluate(t.curEpoch).Precision()
+	precision := NewEvaluator(t.model, t.TrainingConfig, "prado").Evaluate(t.curEpoch).Precision()
 	fmt.Printf("Accuracy: %.2f\n", 100*precision)
 }

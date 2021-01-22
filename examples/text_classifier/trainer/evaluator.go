@@ -19,6 +19,7 @@ import (
 
 type Evaluator struct {
 	model          nn.Model
+	modelType      string
 	evalCorpusPath string
 	includeTitle   bool
 	includeBody    bool
@@ -26,9 +27,10 @@ type Evaluator struct {
 	labelsMap      map[string]int
 }
 
-func NewEvaluator(model nn.Model, t TrainingConfig) *Evaluator {
+func NewEvaluator(model nn.Model, t TrainingConfig, modelType string) *Evaluator {
 	e := &Evaluator{
 		model:          model,
+		modelType:      modelType,
 		evalCorpusPath: t.EvalCorpusPath,
 		includeTitle:   t.IncludeTitle,
 		includeBody:    t.IncludeBody,
@@ -47,9 +49,17 @@ func NewEvaluator(model nn.Model, t TrainingConfig) *Evaluator {
 func (e *Evaluator) Predict(tokenizedExample []string) int {
 	g := ag.NewGraph()
 	c := nn.Context{Graph: g, Mode: nn.Inference}
-	model := nn.Reify(c, e.model).(*prado.Model)
+	var y ag.Node
+	if e.modelType == "prado" {
+		model := nn.Reify(c, e.model).(*prado.Model)
+		y = model.Forward(tokenizedExample)[0]
+	} else if e.modelType == "birnn" {
+		model := nn.Reify(c, e.model).(*BiRNNClassifierModel)
+		y = model.Forward(tokenizedExample)[0]
+	} else {
+		panic("Evaluator: Wrong model type")
+	}
 	defer g.Clear()
-	y := model.Forward(tokenizedExample)[0]
 	return floatutils.ArgMax(y.Value().Data())
 }
 
