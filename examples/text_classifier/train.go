@@ -26,7 +26,7 @@ func pradoTrain(modelPath string, trainingPath string, testPath string) {
 	optimizer := gd.NewOptimizer(updater, nn.NewDefaultParamsIterator(model))
 	config := trainer.TrainingConfig{
 		Seed:             743,
-		BatchSize:        1,
+		BatchSize:        20,
 		Epochs:           8,
 		GradientClipping: 0,
 		TrainCorpusPath:  trainingPath,

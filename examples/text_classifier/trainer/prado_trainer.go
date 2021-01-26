@@ -59,17 +59,36 @@ func (t *PradoTrainer) GetVocabulary() *vocabulary.Vocabulary {
 }
 
 func (t *PradoTrainer) trainBatches(onExample func()) {
+	batches := make([][]string, 0)
+	labels := make([]int, 0)
+	b := 0
+	g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)))
+	c := nn.Context{Graph: g, Mode: nn.Training}
+	model := nn.Reify(c, t.model).(*prado.Model)
+
 	err := t.forEachLine(func(i int, text string) {
+
 		//t.trainPassage(text)
 		e := GetExample(text)
 		tokenizedExample := GetTokenizedExample(e, t.TrainingConfig.IncludeTitle, t.TrainingConfig.IncludeBody)
 		if len(tokenizedExample) > 0 {
 			tokenizedExample = PadTokens(tokenizedExample, 5)
-			t.curLoss = t.learn(i, tokenizedExample, t.TrainingConfig.LabelsMap[e.Category])
-			t.optimizer.IncBatch()
+			batches = append(batches, tokenizedExample)
+			labels = append(labels, t.TrainingConfig.LabelsMap[e.Category])
+			//t.curLoss = t.learn(i, tokenizedExample, t.TrainingConfig.LabelsMap[e.Category])
+			//t.optimizer.IncBatch()
 			t.optimizer.IncExample()
-			t.optimizer.Optimize()
+			//t.optimizer.Optimize()
+
+			if (b%t.TrainingConfig.BatchSize == 0) || i == t.countLines {
+				t.curLoss = t.trainBatch(model, batches, labels)
+				t.optimizer.IncBatch()
+				t.optimizer.Optimize()
+				batches = make([][]string, 0)
+				labels = make([]int, 0)
+			}
 		}
+		b += 1
 		onExample()
 	})
 	if err != nil && err != io.EOF {
@@ -77,18 +96,31 @@ func (t *PradoTrainer) trainBatches(onExample func()) {
 	}
 }
 
-// learn performs the backward respect to the cross-entropy loss, returned as scalar value
-func (t *PradoTrainer) learn(_ int, tokenizedExample []string, label int) float32 {
-	g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)))
-	c := nn.Context{Graph: g, Mode: nn.Training}
-	model := nn.Reify(c, t.model).(*prado.Model)
+// trainbatch performs the backward respect to the cross-entropy loss, returned as scalar value
+func (t *PradoTrainer) trainBatch(model *prado.Model, batch [][]string, labels []int) float32 {
+	g := model.Graph()
+	g.ZeroGrad()
 	defer g.Clear()
-	y := model.Forward(tokenizedExample)[0]
-	loss := g.Div(losses.CrossEntropy(g, y, label), g.NewScalar(1.0))
-	//g.Forward()
+	var loss ag.Node
+	for e := 0; e < len(batch); e++ {
+		y := model.Forward(batch[e])[0]
+		label := labels[e]
+		loss = g.Add(loss, losses.CrossEntropy(g, y, label))
+	}
+	loss = g.Div(loss, g.NewScalar(float32(t.BatchSize)))
 	g.Backward(loss)
 	return loss.ScalarValue()
 }
+
+//
+//func (t *PradoTrainer) learn(_ int, tokenizedExample []string, label int) float32 {
+//
+//	defer g.Clear()
+//	y := model.Forward(tokenizedExample)[0]
+//	loss := g.Div(losses.CrossEntropy(g, y, label), g.NewScalar(1.0))
+//	g.Backward(loss)
+//	return loss.ScalarValue()
+//}
 
 func (t *PradoTrainer) forEachLine(callback func(i int, line string)) (err error) {
 	file, err := os.Open(t.TrainCorpusPath)
@@ -108,6 +140,7 @@ func (t *PradoTrainer) forEachLine(callback func(i int, line string)) (err error
 		}
 		// Process the line here
 		callback(i, line)
+		i++
 		if err != nil {
 			break
 		}
