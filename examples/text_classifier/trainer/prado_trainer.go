@@ -99,7 +99,6 @@ func (t *PradoTrainer) trainBatches(onExample func()) {
 // trainbatch performs the backward respect to the cross-entropy loss, returned as scalar value
 func (t *PradoTrainer) trainBatch(model *prado.Model, batch [][]string, labels []int) float32 {
 	g := model.Graph()
-	g.ZeroGrad()
 	defer g.Clear()
 	var loss ag.Node
 	for e := 0; e < len(batch); e++ {
@@ -107,7 +106,7 @@ func (t *PradoTrainer) trainBatch(model *prado.Model, batch [][]string, labels [
 		label := labels[e]
 		loss = g.Add(loss, losses.CrossEntropy(g, y, label))
 	}
-	loss = g.Div(loss, g.NewScalar(float32(t.BatchSize)))
+	//loss = g.Div(loss, g.NewScalar(float32(t.BatchSize)))
 	g.Backward(loss)
 	return loss.ScalarValue()
 }
