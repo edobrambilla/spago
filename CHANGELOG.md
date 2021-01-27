@@ -1,15 +1,61 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
+to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.4.1] - 2021-01-22
+
 ### Added
-- Various new test cases (improving the coverage).
-- `nlp.embeddings.syncmap` package.
+
+- New function `ReleaseMatrix` to packages `mat32` and `mat64`.
+- New methods to `Matrix` interface, from `mat32` and `mat64`: `Minimum`,
+  `Maximum`, `MulT`, `Inverse`, `DoNonZero`. However, the implementation on sparse matrices is not implemented yet (it
+  always panics).
 
 ### Changed
+
+- Prefer handling `Matrix` interface values over specific `Dense` or `Sparse`
+  matrices, also avoiding unnecessary type casts. Relevant changes to the public API are listed below.
+  - `mat(32|64).Stack` function's arguments and returned value are now `Matrix` 
+    interfaces, instead of explicit `Dense` matrices.
+  - `Dense.Minimum` and `Dense.Maximum`, from packages `mat32` and `mat64`,
+    return a `Matrix` interface, instead of a specific `Dense` type.
+  - The return values of `fofe.EncodeDense`, `fofe.Encode`, and `fofe.BiEncode`
+    are slices of `Matrix` values, instead of `Dense` or `Sparse`.
+  - The `z` argument of the function `fofe.Decode` is of type `Matrix`,
+    instead of `Dense`.
+  - `ml.optimizers.de` (Differential Evolution optimizer) API was changed
+    handling `Matrix` values, instead of specific `Dense` matrices. Changes
+    include: `Member.TargetVector`, `Member.DonorVector`, `ScoredVector.Vector`, 
+    the `vector` argument of `NewMember` function, the `solution` argument
+    of `score` and `validate` functions passed to `NewOptimizer`.
+  - `PositionalEncoder.Cache` and `AxialPositionalEncoder.Cache` are slices
+    of `Matrix`, instead of slices of `Dense`.
+  - `AxialPositionalEncoder.EncodingAt` returns a `Matrix` value, instead of `Dense`.
+  - `nn.DumpParamsVector` returns a `Matrix` value, instead of `Dense`.
+  - The `vector` argument of the function `nn.LoadParamsVector` is a `Matrix`, 
+    instead of `Dense`.
+  - The `value` argument of the method `embeddings.Model.SetEmbedding` is of
+    type `Matrix`, instead of `Dense`.
+  - The type of the struct field `evolvingembeddings.WordVectorPair.Vector` is
+   `Matrix`, instead of `Dense`.
+
+## [0.4.0] - 2021-01-17
+
+### Added
+
+- Various new test cases (improving the coverage).
+- `nlp.embeddings.syncmap` package.
+- `ml.nn.recurrent.srnn.BiModel` which implements a bidirectional variant of the Shuffling Recurrent Neural Networks (
+  SRNN).
+- Configurable timeout and request limit to all HTTP and gRPC servers (see also commands help).
+
+### Changed
+
 - All CLI commands implementation has been refactored, so that the
   `docker-entrypoint` can reuse all other `cli.App` objects, instead of
   just running separate executables. By extension, now the Dockerfile builds

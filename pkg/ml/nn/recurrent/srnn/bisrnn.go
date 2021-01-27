@@ -10,6 +10,7 @@
 package srnn
 
 import (
+	"encoding/gob"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/activation"
@@ -23,7 +24,7 @@ var (
 	_ nn.Model = &BiModel{}
 )
 
-// Model contains the serializable parameters.
+// BiModel contains the serializable parameters.
 type BiModel struct {
 	nn.BaseModel
 	Config    Config
@@ -33,7 +34,11 @@ type BiModel struct {
 	LayerNorm *layernorm.Model
 }
 
-// New returns a new model with parameters initialized to zeros.
+func init() {
+	gob.Register(&BiModel{})
+}
+
+// NewBidirectional returns a new model with parameters initialized to zeros.
 func NewBidirectional(config Config) *BiModel {
 	layers := []nn.StandardModel{
 		linear.New(config.InputSize, config.HyperSize),

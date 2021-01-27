@@ -116,7 +116,7 @@ func (m *Model) Count() int {
 
 // SetEmbedding inserts a new word embedding.
 // If the word is already on the map, it overwrites the existing value with the new one.
-func (m *Model) SetEmbedding(word string, value *mat.Dense) {
+func (m *Model) SetEmbedding(word string, value mat.Matrix) {
 	if m.ReadOnly {
 		log.Fatal("embedding: set operation not permitted in read-only mode")
 	}
@@ -180,14 +180,12 @@ func (m *Model) getStoredEmbedding(word string) nn.Param {
 		return nil // embedding not found
 	}
 
-	tmp, err := nn.UnmarshalBinaryParam(bytes.NewReader(data))
+	embedding := nn.NewParam(nil, nn.SetStorage(m.Storage), nn.RequiresGrad(!m.ReadOnly))
+	embedding.SetName(word)
+	err = nn.UnmarshalBinaryParamWithReceiver(bytes.NewReader(data), embedding)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	embedding := nn.NewParam(tmp.Value(), nn.SetStorage(m.Storage), nn.RequiresGrad(!m.ReadOnly))
-	embedding.SetName(word)
-	embedding.SetPayload(tmp.Payload())
 
 	m.UsedEmbeddings.Store(word, embedding) // important
 	return embedding
