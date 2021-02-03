@@ -51,7 +51,7 @@ func NewPradoEmbeddings(config EmbeddingsConfig) *Embeddings {
 // other type of embeddings
 func (m *Embeddings) SetProjectedEmbeddings(codes map[string]mat32.Matrix) {
 	for word, code := range codes {
-		hashedCode := m.Projection.GetHash(code)
+		hashedCode := m.Projection.GetHashProjection(code)
 		m.Word.SetEmbeddingFromData(word, hashedCode.Data())
 	}
 }
@@ -60,12 +60,11 @@ func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 	encoded := make([]ag.Node, len(words))
 	wordEmbeddings := p.getWordEmbeddings(words)
 	sequenceIndex := 0
-	//r := rand.NewLockedRand(40)
 	for i := 0; i < len(words); i++ {
 		if wordEmbeddings[i] != nil {
 			encoded[i] = wordEmbeddings[i]
 		} else {
-			//code := getStringCode(words[i], p.EmbeddingsConfig)
+			//code := getStringCode(words[i], p.EmbeddingsConfig) // alternative way to calculate unknown embedding.
 			encoded[i] = p.Word.ZeroEmbedding
 		}
 		if words[i] == wordpiecetokenizer.DefaultSequenceSeparator {
@@ -75,17 +74,25 @@ func (p *Embeddings) EmbedSequence(words []string) []ag.Node {
 	return encoded
 }
 
-func getHashCode(config EmbeddingsConfig, r *rand.LockedRand) mat32.Matrix {
+// Get code vector, binary random. Then this vector is transformed in nternary vector like original prado paper
+// The code size must be N*2, where N is the projection size
+func GetHashCode(config EmbeddingsConfig, r *rand.LockedRand) mat32.Matrix {
 	out := mat32.NewEmptyVecDense(config.InputSize)
 	c := 0
 	for i := 0; i < config.InputSize; i++ {
-		out.Data()[c] = (r.Float32() * 2.0) - 1.0
+		rnd := (r.Float32() * 2.0) - 1.0
+		if rnd >= 0.0 {
+			out.Data()[c] = 1.0
+		} else {
+			out.Data()[c] = 0.0
+		}
 		c++
 	}
-	return out //.ProdScalar(0.1)
+	return out
 }
 
-func getStringCode(s string, config EmbeddingsConfig) mat32.Matrix {
+// Get code vector, string based: similar words get similar code. Then each vector is projected into ternary space
+func GetStringCode(s string, config EmbeddingsConfig) mat32.Matrix {
 	out := mat32.NewEmptyVecDense(config.InputSize)
 	c := 0
 	for _, char := range s {

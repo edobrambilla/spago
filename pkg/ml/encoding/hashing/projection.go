@@ -68,11 +68,27 @@ func quantization(n float64, narity int, min float64, max float64) float64 {
 	return 0.0
 }
 
-func (d *Data) GetHash(input mat32.Matrix) *mat32.Dense {
+func (d *Data) GetHashDot(input mat32.Matrix) *mat32.Dense {
 	out := mat32.NewEmptyVecDense(d.OutputSize)
 	for i := 0; i < d.OutputSize; i++ {
 		p := input.DotUnitary(d.W[i])
 		out.Data()[i] = float32(quantization(float64(p), d.Config.Narity, -3.0, 3.0))
+	}
+	return out
+}
+
+func (d *Data) GetHashProjection(input mat32.Matrix) *mat32.Dense {
+	out := mat32.NewEmptyVecDense(d.OutputSize)
+	k := 0
+	for i := 0; i < d.OutputSize; i += 2 {
+		if input.Data()[i] == 0.0 && input.Data()[i+1] == 0.0 {
+			out.Data()[k] = -1.0
+		} else if input.Data()[i] == 1.0 && input.Data()[i+1] == 1.0 {
+			out.Data()[k] = 1.0
+		} else {
+			out.Data()[k] = 0.0
+		}
+		k++
 	}
 	return out
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/nlpodyssey/spago/pkg/nlp/classifiers/prado"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
 	"log"
-	"math"
 	"net/http"
 	"os"
 )
@@ -109,18 +108,18 @@ func newPradoModel() *prado.Model {
 		EncodingActivation:    "ReLU",
 		ConvActivation:        "Identity",
 		ConvSize:              4,
-		InputSize:             30,
-		ProjectionSize:        256,
+		InputSize:             256,
+		ProjectionSize:        128,
 		ProjectionArity:       3,
 		EncodingSize:          96,
-		UnigramsChannels:      5,
-		BigramsChannels:       5,
-		TrigramsChannels:      2,
+		UnigramsChannels:      1,
+		BigramsChannels:       1,
+		TrigramsChannels:      1,
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
-		Skip1BigramsChannels:  5,
-		Skip2BigramsChannels:  5,
-		Skip1TrigramsChannels: 2,
+		Skip1BigramsChannels:  1,
+		Skip2BigramsChannels:  1,
+		Skip1TrigramsChannels: 1,
 		TypeVocabSize:         0,
 		VocabSize:             5,
 		Id2Label: map[string]string{
@@ -154,41 +153,12 @@ func newBiRNNModel() *trainer.BiRNNClassifierModel {
 	return trainer.NewBiRNNClassifierModel(config)
 }
 
-func getHashCode(config prado.EmbeddingsConfig, r *rand.LockedRand) mat32.Matrix {
-	out := mat32.NewEmptyVecDense(config.InputSize)
-	c := 0
-	for i := 0; i < config.InputSize; i++ {
-		out.Data()[c] = (r.Float32() * 2.0) - 1.0
-		c++
-	}
-	return out //.ProdScalar(0.1)
-}
-
-func getStringCode(s string, config prado.EmbeddingsConfig) mat32.Matrix {
-	out := mat32.NewEmptyVecDense(config.InputSize)
-	c := 0
-	for _, char := range s {
-		if c < config.InputSize {
-			for n := 1; n <= 3; n++ {
-				out.Data()[c] = mat32.Float(float64(digit(int(char), n)))
-				c++
-			}
-		}
-	}
-	return out.ProdScalar(0.1)
-}
-
-func digit(num, place int) int {
-	r := num % int(math.Pow(10, float64(place)))
-	return r / int(math.Pow(10, float64(place-1)))
-}
-
 func getHashedVocabulary(vocabulary *vocabulary.Vocabulary, config prado.EmbeddingsConfig) map[string]mat32.Matrix {
 	var outMap map[string]mat32.Matrix
 	outMap = make(map[string]mat32.Matrix)
-	//r := rand.NewLockedRand(40)
+	r := rand.NewLockedRand(40)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getStringCode(word, config)
+		outMap[word] = prado.GetHashCode(config, r)
 	}
 	return outMap
 }
