@@ -21,12 +21,12 @@ import (
 func pradoTrain(modelPath string, trainingPath string, testPath string) {
 	model := newPradoModel()
 	model.InitPradoParameters(rand.NewLockedRand(743))
-	updater := adam.New(adam.NewConfig(0.0007, 0.9, 0.999, 1.0e-8))
+	updater := adam.New(adam.NewConfig(0.0001, 0.9, 0.999, 1.0e-8))
 	optimizer := gd.NewOptimizer(updater, nn.NewDefaultParamsIterator(model))
 	config := trainer.TrainingConfig{
 		Seed:             743,
-		BatchSize:        1,
-		Epochs:           10,
+		BatchSize:        40,
+		Epochs:           18,
 		GradientClipping: 0,
 		TrainCorpusPath:  trainingPath,
 		EvalCorpusPath:   testPath,
@@ -108,12 +108,12 @@ func newPradoModel() *prado.Model {
 		EncodingActivation:    "ReLU",
 		ConvActivation:        "Identity",
 		ConvSize:              4,
-		InputSize:             512,
-		ProjectionSize:        256,
+		InputSize:             256,
+		ProjectionSize:        128,
 		ProjectionArity:       3,
 		EncodingSize:          96,
 		UnigramsChannels:      1,
-		BigramsChannels:       0,
+		BigramsChannels:       1,
 		TrigramsChannels:      0,
 		FourgramsChannels:     0,
 		FivegramsChannels:     0,
