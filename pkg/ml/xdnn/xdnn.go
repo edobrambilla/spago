@@ -25,7 +25,7 @@ type xDnnModel struct {
 	// Mode returns whether the model is being used for training or inference.
 	Mode ProcessingMode `json:"processing_mode"`
 	// Number of prototypes
-	Prototypes int `json:"prototypes"`
+	Classes []*xDnnClass `json:"classes"`
 	// Global mean
 	Mean mat32.Dense `json:"mean"`
 	// Labels description
@@ -34,11 +34,15 @@ type xDnnModel struct {
 
 // Define dataset Classes, contains features that describe prototypes and other values
 type xDnnClass struct {
-	Samples           []mat32.Dense
-	PrototypesID      int // todo names?
-	PrototypesVectors []mat32.Dense
+	//Samples           []*mat32.Dense
+	PrototypesID      []int // todo names?
+	PrototypesVectors []*mat32.Dense
 	Support           int     // Number of members associated to this class
 	Radius            float32 // Degree of similarity between two vectors
+	// Number of prototypes
+	Prototypes int `json:"prototypes"`
+	// Global mean per class
+	Mean *mat32.Dense `json:"mean"`
 }
 
 func Standardize(vectors []*mat32.Dense) []*mat32.Dense {
@@ -117,4 +121,39 @@ func StdDev(vectors []*mat32.Dense) *mat32.Dense {
 	//diff = diff.ProdScalar(mat32.NewScalar(1.0 / float32(len(vectors))).Scalar())
 	sqrt := diff.Sqrt()
 	return sqrt.(*mat32.Dense)
+}
+
+func (x xDnnClass) Init(vector *mat32.Dense) {
+	x.Mean = vector
+	x.Support = 1
+	x.PrototypesID = make([]int, 0)
+	x.PrototypesID = append(x.PrototypesID, 1)
+	x.PrototypesVectors = make([]*mat32.Dense, 0)
+	x.PrototypesVectors = append(x.PrototypesVectors, vector)
+}
+
+func (x xDnnModel) Density(vector *mat32.Dense, index float32) float32 {
+	var incrementalMean *mat32.Dense
+	var dividedVector *mat32.Dense
+	var incrementalEuclideanNorm float32
+	if index == 0 {
+		incrementalMean = vector
+		incrementalEuclideanNorm = SquaredNorm(vector)
+	} else {
+		incrementalMean = x.Mean.ProdScalar(mat32.NewScalar(index / (index + 1.0)).Scalar()).(*mat32.Dense)
+		dividedVector = vector.ProdScalar(mat32.NewScalar(1.0 / index).Scalar()).(*mat32.Dense)
+		incrementalMean = incrementalMean.Add(dividedVector).(*mat32.Dense)
+		incrementalEuclideanNorm = ((index/index + 1.0) * incrementalEuclideanNorm) + (SquaredNorm(vector) / index)
+	}
+	diffSquaredNorm := SquaredNorm(vector.Sub(incrementalMean).(*mat32.Dense))
+	incrMeanSquaredNorm := SquaredNorm(incrementalMean)
+	return 1.0 / (1.0 + (diffSquaredNorm + incrementalEuclideanNorm - incrMeanSquaredNorm))
+}
+
+func SquaredNorm(vector *mat32.Dense) float32 {
+	sum := float32(0.0)
+	for i := 0; i < vector.Size(); i++ {
+		sum = sum + (vector.Data()[i] * vector.Data()[i])
+	}
+	return sum
 }
