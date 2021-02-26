@@ -100,6 +100,25 @@ func Test_Normalize(t *testing.T) {
 	}, s[2].Data())
 }
 
+func Test_SquaredNorm(t *testing.T) {
+	a := mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	s := SquaredNorm(a)
+	assertEqualApprox(t, 53.9, s)
+}
+
+func Test_Density(t *testing.T) {
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	model := simpleXDNN()
+	model.Classes[0] = NewxDNNClass(a[0])
+	s := model.Density(a[0], 0, 0)
+	assertEqualApprox(t, 1.0, s)
+	s = model.Density(a[1], 1, 0)
+	assertEqualApprox(t, 0.028706760, s)
+}
+
 func assertEqualApprox(t *testing.T, expected, actual float32) {
 	t.Helper()
 	assert.InDelta(t, expected, actual, 1.0e-04)
@@ -108,4 +127,9 @@ func assertEqualApprox(t *testing.T, expected, actual float32) {
 func assertSliceEqualApprox(t *testing.T, expected, actual []float32) {
 	t.Helper()
 	assert.InDeltaSlice(t, expected, actual, 1.0e-04)
+}
+
+func simpleXDNN() *xDnnModel {
+	labels := map[string]int{"001": 0, "002": 1, "003": 2}
+	return NewDefaultxDNN(3, labels)
 }
