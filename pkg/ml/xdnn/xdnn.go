@@ -29,7 +29,7 @@ type xDnnModel struct {
 	// Global mean
 	Mean mat32.Dense `json:"mean"`
 	// Labels description
-	ID2Label map[int]string `json:"id2label"`
+	ID2Label map[string]int `json:"id2label"`
 }
 
 // Define dataset Classes, contains features that describe prototypes and other values
@@ -43,6 +43,19 @@ type xDnnClass struct {
 	Prototypes int `json:"prototypes"`
 	// Global mean per class
 	Mean *mat32.Dense `json:"mean"`
+}
+
+func NewDefaultxDNN(nClasses int, labels map[string]int) *xDnnModel {
+	if nClasses < 2 {
+		panic("At least 2 classes required")
+	}
+	c := make([]*xDnnClass, nClasses)
+	return &xDnnModel{
+		Mode:     Training,
+		Classes:  c,
+		Mean:     nil,
+		ID2Label: labels,
+	}
 }
 
 func Standardize(vectors []*mat32.Dense) []*mat32.Dense {
