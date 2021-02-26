@@ -26,8 +26,6 @@ type xDnnModel struct {
 	Mode ProcessingMode `json:"processing_mode"`
 	// Number of prototypes
 	Classes []*xDnnClass `json:"classes"`
-	// Global mean
-	Mean mat32.Dense `json:"mean"`
 	// Labels description
 	ID2Label map[string]int `json:"id2label"`
 }
@@ -43,6 +41,8 @@ type xDnnClass struct {
 	Prototypes int `json:"prototypes"`
 	// Global mean per class
 	Mean *mat32.Dense `json:"mean"`
+	// Global sum squared norm per class
+	SumSquaredNorm float32 `json:"norm"`
 }
 
 func NewDefaultxDNN(nClasses int, labels map[string]int) *xDnnModel {
@@ -53,8 +53,23 @@ func NewDefaultxDNN(nClasses int, labels map[string]int) *xDnnModel {
 	return &xDnnModel{
 		Mode:     Training,
 		Classes:  c,
-		Mean:     nil,
 		ID2Label: labels,
+	}
+}
+
+func NewxDNNClass(vector *mat32.Dense) *xDnnClass {
+	prototypesID := make([]int, 0)
+	prototypesID = append(prototypesID, 1)
+	prototypesVectors := make([]*mat32.Dense, 0)
+	prototypesVectors = append(prototypesVectors, vector)
+	return &xDnnClass{
+		PrototypesID:      prototypesID,
+		PrototypesVectors: prototypesVectors,
+		Support:           1,
+		Radius:            0,
+		Prototypes:        1,
+		Mean:              vector,
+		SumSquaredNorm:    0.0,
 	}
 }
 
@@ -136,16 +151,7 @@ func StdDev(vectors []*mat32.Dense) *mat32.Dense {
 	return sqrt.(*mat32.Dense)
 }
 
-func (x xDnnClass) Init(vector *mat32.Dense) {
-	x.Mean = vector
-	x.Support = 1
-	x.PrototypesID = make([]int, 0)
-	x.PrototypesID = append(x.PrototypesID, 1)
-	x.PrototypesVectors = make([]*mat32.Dense, 0)
-	x.PrototypesVectors = append(x.PrototypesVectors, vector)
-}
-
-func (x xDnnModel) Density(vector *mat32.Dense, index float32) float32 {
+func (x xDnnModel) Density(vector *mat32.Dense, index float32, class int) float32 {
 	var incrementalMean *mat32.Dense
 	var dividedVector *mat32.Dense
 	var incrementalEuclideanNorm float32
@@ -153,13 +159,17 @@ func (x xDnnModel) Density(vector *mat32.Dense, index float32) float32 {
 		incrementalMean = vector
 		incrementalEuclideanNorm = SquaredNorm(vector)
 	} else {
-		incrementalMean = x.Mean.ProdScalar(mat32.NewScalar(index / (index + 1.0)).Scalar()).(*mat32.Dense)
-		dividedVector = vector.ProdScalar(mat32.NewScalar(1.0 / index).Scalar()).(*mat32.Dense)
+		f := index / (index + 1.0)
+		r := 1.0 / (index + 1.0)
+		incrementalMean = x.Classes[class].Mean.ProdScalar(mat32.NewScalar(f).Scalar()).(*mat32.Dense)
+		dividedVector = vector.ProdScalar(mat32.NewScalar(r).Scalar()).(*mat32.Dense)
 		incrementalMean = incrementalMean.Add(dividedVector).(*mat32.Dense)
-		incrementalEuclideanNorm = ((index/index + 1.0) * incrementalEuclideanNorm) + (SquaredNorm(vector) / index)
+		incrementalEuclideanNorm = (f * x.Classes[class].SumSquaredNorm) + (r * SquaredNorm(vector))
 	}
 	diffSquaredNorm := SquaredNorm(vector.Sub(incrementalMean).(*mat32.Dense))
 	incrMeanSquaredNorm := SquaredNorm(incrementalMean)
+	x.Classes[class].Mean = incrementalMean
+	x.Classes[class].SumSquaredNorm = incrementalEuclideanNorm
 	return 1.0 / (1.0 + (diffSquaredNorm + incrementalEuclideanNorm - incrMeanSquaredNorm))
 }
 
