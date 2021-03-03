@@ -106,6 +106,18 @@ func Test_SquaredNorm(t *testing.T) {
 	assertEqualApprox(t, 53.9, s)
 }
 
+func Test_DensityIncremental(t *testing.T) {
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	model := simpleXDNN()
+	model.Classes[0] = NewxDNNClass(a[0])
+	s := model.DensityIncremental(a[0], 0, 0)
+	assertEqualApprox(t, 1.0, s)
+	s = model.DensityIncremental(a[1], 1, 0)
+	assertEqualApprox(t, 0.028706760, s)
+}
+
 func Test_Density(t *testing.T) {
 	a := make([]*mat32.Dense, 3)
 	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
@@ -114,9 +126,10 @@ func Test_Density(t *testing.T) {
 	model := simpleXDNN()
 	model.Classes[0] = NewxDNNClass(a[0])
 	s := model.DensityIncremental(a[0], 0, 0)
-	assertEqualApprox(t, 1.0, s)
 	s = model.DensityIncremental(a[1], 1, 0)
+	d := model.Density(a[2], 0)
 	assertEqualApprox(t, 0.028706760, s)
+	assertEqualApprox(t, 0.01877758, d)
 }
 
 func assertEqualApprox(t *testing.T, expected, actual float32) {
