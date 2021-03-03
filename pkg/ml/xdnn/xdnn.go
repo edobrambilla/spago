@@ -69,7 +69,7 @@ func NewxDNNClass(vector *mat32.Dense) *xDnnClass {
 		Radius:            0,
 		Prototypes:        1,
 		Mean:              vector,
-		SumSquaredNorm:    0.0,
+		SumSquaredNorm:    SquaredNorm(vector),
 	}
 }
 
@@ -155,17 +155,13 @@ func (x xDnnModel) DensityIncremental(vector *mat32.Dense, index float32, class 
 	var incrementalMean *mat32.Dense
 	var dividedVector *mat32.Dense
 	var incrementalEuclideanNorm float32
-	if index == 0 {
-		incrementalMean = vector
-		incrementalEuclideanNorm = SquaredNorm(vector)
-	} else {
-		f := index / (index + 1.0)
-		r := 1.0 / (index + 1.0)
-		incrementalMean = x.Classes[class].Mean.ProdScalar(mat32.NewScalar(f).Scalar()).(*mat32.Dense)
-		dividedVector = vector.ProdScalar(mat32.NewScalar(r).Scalar()).(*mat32.Dense)
-		incrementalMean = incrementalMean.Add(dividedVector).(*mat32.Dense)
-		incrementalEuclideanNorm = (f * x.Classes[class].SumSquaredNorm) + (r * SquaredNorm(vector))
-	}
+
+	f := index / (index + 1.0)
+	r := 1.0 / (index + 1.0)
+	incrementalMean = x.Classes[class].Mean.ProdScalar(mat32.NewScalar(f).Scalar()).(*mat32.Dense)
+	dividedVector = vector.ProdScalar(mat32.NewScalar(r).Scalar()).(*mat32.Dense)
+	incrementalMean = incrementalMean.Add(dividedVector).(*mat32.Dense)
+	incrementalEuclideanNorm = (f * x.Classes[class].SumSquaredNorm) + (r * SquaredNorm(vector))
 	diffSquaredNorm := SquaredNorm(vector.Sub(incrementalMean).(*mat32.Dense))
 	incrMeanSquaredNorm := SquaredNorm(incrementalMean)
 	x.Classes[class].Mean = incrementalMean
