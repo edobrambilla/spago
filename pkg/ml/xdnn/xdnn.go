@@ -32,11 +32,10 @@ type xDnnModel struct {
 
 // Define dataset Classes, contains features that describe prototypes and other values
 type xDnnClass struct {
-	//Samples           []*mat32.Dense
-	PrototypesID      []int // todo names?
+	//Samples           int
+	PrototypesSupport []int // Number of members associated to prototypes in this class
 	PrototypesVectors []*mat32.Dense
-	Support           int     // Number of members associated to this class
-	Radius            float32 // Degree of similarity between two vectors
+	Radius            []float32 // Degree of similarity between two vectors
 	// Number of prototypes
 	Prototypes int `json:"prototypes"`
 	// Global mean per class
@@ -58,15 +57,16 @@ func NewDefaultxDNN(nClasses int, labels map[string]int) *xDnnModel {
 }
 
 func NewxDNNClass(vector *mat32.Dense) *xDnnClass {
-	prototypesID := make([]int, 0)
-	prototypesID = append(prototypesID, 1)
+	prototypesSupport := make([]int, 0)
+	prototypesSupport = append(prototypesSupport, 1)
 	prototypesVectors := make([]*mat32.Dense, 0)
 	prototypesVectors = append(prototypesVectors, vector)
+	radiusValues := make([]float32, 0)
+	radiusValues = append(radiusValues, 1.30057568)
 	return &xDnnClass{
-		PrototypesID:      prototypesID,
+		//PrototypesID:      prototypesID,
 		PrototypesVectors: prototypesVectors,
-		Support:           1,
-		Radius:            1.30057568,
+		Radius:            radiusValues,
 		Prototypes:        1,
 		Mean:              vector,
 		SumSquaredNorm:    SquaredNorm(vector),
@@ -183,4 +183,76 @@ func SquaredNorm(vector *mat32.Dense) float32 {
 		sum = sum + (vector.Data()[i] * vector.Data()[i])
 	}
 	return sum
+}
+
+func Norm(vector *mat32.Dense) float32 {
+	sum := float32(0.0)
+	for i := 0; i < vector.Size(); i++ {
+		sum = sum + (vector.Data()[i] * vector.Data()[i])
+	}
+	return mat32.Sqrt(sum)
+}
+
+type maxminPair struct {
+	max float32
+	min float32
+}
+
+func (x xDnnModel) getMaxMinPrototype(class int) maxminPair {
+	r := maxminPair{
+		max: float32(-math.MaxFloat32),
+		min: float32(math.MaxFloat32),
+	}
+	for _, p := range x.Classes[class].PrototypesVectors {
+		density := x.Density(p, class)
+		if density > r.max {
+			r.max = density
+		}
+		if density < r.min {
+			r.min = density
+		}
+	}
+	return r
+}
+
+func (x xDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
+	argmin := 0
+	minNorm := float32(math.MaxFloat32)
+	for j, p := range x.Classes[class].PrototypesVectors {
+		norm := Norm(p.Sub(vector).(*mat32.Dense))
+		if norm < minNorm {
+			argmin = j
+		}
+	}
+	return argmin
+}
+
+func (x xDnnModel) CheckExample(vector *mat32.Dense, index float32, class int) {
+	sampleDensity := x.DensityIncremental(vector, index, class)
+	prototypesDensity := x.getMaxMinPrototype(class)
+	nearestPrototypeIndex := x.GetNearestPrototype(vector, class)
+	if (sampleDensity >= prototypesDensity.max) || (sampleDensity <= prototypesDensity.min) {
+		x.AddDataCloud(vector, class)
+	} else {
+		x.UpdateDatacloud(vector, nearestPrototypeIndex, class)
+	}
+}
+
+func (x xDnnModel) AddDataCloud(vector *mat32.Dense, class int) {
+	x.Classes[class].PrototypesVectors = append(x.Classes[class].PrototypesVectors, vector)
+	x.Classes[class].PrototypesSupport = append(x.Classes[class].PrototypesSupport, 1)
+	x.Classes[class].Radius = append(x.Classes[class].Radius, 1.30057568)
+}
+
+func (x xDnnModel) UpdateDatacloud(vector *mat32.Dense, prototypeIndex int, class int) {
+	prototypeNorm := SquaredNorm(x.Classes[class].PrototypesVectors[prototypeIndex])
+	curSupport := x.Classes[class].PrototypesSupport[prototypeIndex]
+	f := float32(curSupport / (curSupport + 1.0))
+	upPrototype := x.Classes[class].PrototypesVectors[prototypeIndex].ProdScalar(f)
+	upExample := vector.ProdScalar(f)
+	squaredRadius := x.Classes[class].Radius[prototypeIndex] * x.Classes[class].Radius[prototypeIndex]
+	upRadius := mat32.Sqrt((squaredRadius + 1.0 - prototypeNorm) / 2.0)
+	x.Classes[class].PrototypesSupport[prototypeIndex] += 1
+	x.Classes[class].PrototypesVectors[prototypeIndex] = upPrototype.Add(upExample).(*mat32.Dense)
+	x.Classes[class].Radius[prototypeIndex] = upRadius
 }
