@@ -66,7 +66,7 @@ func NewxDNNClass(vector *mat32.Dense) *xDnnClass {
 		PrototypesID:      prototypesID,
 		PrototypesVectors: prototypesVectors,
 		Support:           1,
-		Radius:            0,
+		Radius:            1.30057568,
 		Prototypes:        1,
 		Mean:              vector,
 		SumSquaredNorm:    SquaredNorm(vector),
