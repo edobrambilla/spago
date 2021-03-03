@@ -113,9 +113,9 @@ func Test_Density(t *testing.T) {
 	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 	model := simpleXDNN()
 	model.Classes[0] = NewxDNNClass(a[0])
-	s := model.Density(a[0], 0, 0)
+	s := model.DensityIncremental(a[0], 0, 0)
 	assertEqualApprox(t, 1.0, s)
-	s = model.Density(a[1], 1, 0)
+	s = model.DensityIncremental(a[1], 1, 0)
 	assertEqualApprox(t, 0.028706760, s)
 }
 

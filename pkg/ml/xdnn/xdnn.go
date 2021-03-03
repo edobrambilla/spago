@@ -151,7 +151,7 @@ func StdDev(vectors []*mat32.Dense) *mat32.Dense {
 	return sqrt.(*mat32.Dense)
 }
 
-func (x xDnnModel) Density(vector *mat32.Dense, index float32, class int) float32 {
+func (x xDnnModel) DensityIncremental(vector *mat32.Dense, index float32, class int) float32 {
 	var incrementalMean *mat32.Dense
 	var dividedVector *mat32.Dense
 	var incrementalEuclideanNorm float32
@@ -171,6 +171,14 @@ func (x xDnnModel) Density(vector *mat32.Dense, index float32, class int) float3
 	x.Classes[class].Mean = incrementalMean
 	x.Classes[class].SumSquaredNorm = incrementalEuclideanNorm
 	return 1.0 / (1.0 + (diffSquaredNorm + incrementalEuclideanNorm - incrMeanSquaredNorm))
+}
+
+func (x xDnnModel) Density(vector *mat32.Dense, class int) float32 {
+	mean := x.Classes[class].Mean
+	euclideanNorm := x.Classes[class].SumSquaredNorm
+	diffSquaredNorm := SquaredNorm(vector.Sub(mean).(*mat32.Dense))
+	incrMeanSquaredNorm := SquaredNorm(mean)
+	return 1.0 / (1.0 + (diffSquaredNorm + euclideanNorm - incrMeanSquaredNorm))
 }
 
 func SquaredNorm(vector *mat32.Dense) float32 {
