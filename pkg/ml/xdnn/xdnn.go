@@ -151,6 +151,18 @@ func StdDev(vectors []*mat32.Dense) *mat32.Dense {
 	return sqrt.(*mat32.Dense)
 }
 
+func Variance(vector *mat32.Dense) float32 {
+	sum := float32(0.0)
+	sumsqr := float32(0.0)
+	for _, v := range vector.Data() {
+		sum += v
+		sumsqr += v * v
+	}
+	sumsqr *= 1.0 / float32(len(vector.Data()))
+	sum *= 1.0 / float32(len(vector.Data()))
+	return sumsqr - (sum * sum)
+}
+
 func (x xDnnModel) DensityIncremental(vector *mat32.Dense, index float32, class int) float32 {
 	var incrementalMean *mat32.Dense
 	var dividedVector *mat32.Dense
@@ -191,6 +203,11 @@ func Norm(vector *mat32.Dense) float32 {
 		sum = sum + (vector.Data()[i] * vector.Data()[i])
 	}
 	return mat32.Sqrt(sum)
+}
+
+func Similarity(vectorA *mat32.Dense, vectorB *mat32.Dense) float32 {
+	s := Variance(vectorB)
+	return 1.0 / (1.0 + (SquaredNorm(vectorA.Sub(vectorB).(*mat32.Dense)) / s))
 }
 
 type maxminPair struct {
