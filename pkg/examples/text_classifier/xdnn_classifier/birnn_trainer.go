@@ -41,6 +41,7 @@ type BiRNNTrainer struct {
 	countLines    int
 	curLoss       float32
 	curEpoch      int
+	xDNNExamples  []*xDNNExample
 }
 
 type BiRNNClassifierConfig struct {
@@ -161,6 +162,7 @@ func NewBiRNNTrainer(model *BiRNNClassifierModel, config TrainingConfig, optimiz
 		randGen:        rand.NewLockedRand(config.Seed),
 		optimizer:      optimizer,
 		model:          model,
+		xDNNExamples:   make([]*xDNNExample, 0),
 	}
 }
 
@@ -182,11 +184,21 @@ func (m *BiRNNClassifierModel) EmbedSequence(words []string) []ag.Node {
 	return encoded
 }
 
-func (m *BiRNNClassifierModel) Forward(tokens []string) []ag.Node {
+func (m *BiRNNClassifierModel) EncodeText(tokens []string) ag.Node {
 	e := m.EmbedSequence(tokens)
 	encodedSequence := m.BiRNN.Forward(e...)
 	textEncoding := m.Graph().Concat(encodedSequence[0], encodedSequence[len(tokens)-1])
-	output := m.Classifier.Forward(textEncoding)
+	return textEncoding
+}
+
+func (m *BiRNNClassifierModel) Forward(tokens []string) []ag.Node {
+	e := m.EncodeText(tokens)
+	output := m.Classifier.Forward(e)
+	return output
+}
+
+func (m *BiRNNClassifierModel) Classify(encodedText ag.Node) []ag.Node {
+	output := m.Classifier.Forward(encodedText)
 	return output
 }
 
@@ -218,7 +230,6 @@ func (t *BiRNNTrainer) GetVocabulary() *vocabulary.Vocabulary {
 
 func (t *BiRNNTrainer) trainBatches(onExample func()) {
 	err := t.forEachLine(func(i int, text string) {
-		//t.trainPassage(text)
 		e := GetExample(text)
 		tokenizedExample := GetTokenizedExample(e, t.TrainingConfig.IncludeTitle, t.TrainingConfig.IncludeBody)
 		if len(tokenizedExample) > 0 {
@@ -241,9 +252,15 @@ func (t *BiRNNTrainer) learn(_ int, tokenizedExample []string, label int) float3
 	c := nn.Context{Graph: g, Mode: nn.Training}
 	model := nn.Reify(c, t.model).(*BiRNNClassifierModel)
 	defer g.Clear()
-	y := model.Forward(tokenizedExample)[0]
+
+	encodedText := model.EncodeText(tokenizedExample)
+	y := model.Classify(encodedText)[0]
+	t.xDNNExamples = append(t.xDNNExamples, &xDNNExample{ //for xdnn classifier
+		Category:      label,
+		TokenizedText: tokenizedExample,
+		BiRNNVector:   *encodedText.Value().(*mat32.Dense),
+	})
 	loss := g.Div(losses.CrossEntropy(g, y, label), g.NewScalar(1.0))
-	//g.Forward()
 	g.Backward(loss)
 	return loss.ScalarValue()
 }
