@@ -142,7 +142,7 @@ func assertSliceEqualApprox(t *testing.T, expected, actual []float32) {
 	assert.InDeltaSlice(t, expected, actual, 1.0e-04)
 }
 
-func simpleXDNN() *xDnnModel {
-	labels := map[string]int{"001": 0, "002": 1, "003": 2}
+func simpleXDNN() *XDnnModel {
+	labels := []string{"001", "002", "003"}
 	return NewDefaultxDNN(3, labels)
 }

@@ -21,17 +21,17 @@ const (
 type ProcessingMode int
 
 // xDnn Model
-type xDnnModel struct {
+type XDnnModel struct {
 	// Mode returns whether the model is being used for training or inference.
 	Mode ProcessingMode `json:"processing_mode"`
 	// Number of prototypes
-	Classes []*xDnnClass `json:"classes"`
+	Classes []*XDnnClass `json:"classes"`
 	// Labels description
-	ID2Label map[string]int `json:"id2label"`
+	ID2Label []string `json:"id2label"`
 }
 
 // Define dataset Classes, contains features that describe prototypes and other values
-type xDnnClass struct {
+type XDnnClass struct {
 	//Samples           int
 	PrototypesSupport []int // Number of members associated to prototypes in this class
 	PrototypesVectors []*mat32.Dense
@@ -44,26 +44,26 @@ type xDnnClass struct {
 	SumSquaredNorm float32 `json:"norm"`
 }
 
-func NewDefaultxDNN(nClasses int, labels map[string]int) *xDnnModel {
+func NewDefaultxDNN(nClasses int, labels []string) *XDnnModel {
 	if nClasses < 2 {
 		panic("At least 2 classes required")
 	}
-	c := make([]*xDnnClass, nClasses)
-	return &xDnnModel{
+	c := make([]*XDnnClass, nClasses)
+	return &XDnnModel{
 		Mode:     Training,
 		Classes:  c,
 		ID2Label: labels,
 	}
 }
 
-func NewxDNNClass(vector *mat32.Dense) *xDnnClass {
+func NewxDNNClass(vector *mat32.Dense) *XDnnClass {
 	prototypesSupport := make([]int, 0)
 	prototypesSupport = append(prototypesSupport, 1)
 	prototypesVectors := make([]*mat32.Dense, 0)
 	prototypesVectors = append(prototypesVectors, vector)
 	radiusValues := make([]float32, 0)
 	radiusValues = append(radiusValues, 1.30057568)
-	return &xDnnClass{
+	return &XDnnClass{
 		//PrototypesID:      prototypesID,
 		PrototypesVectors: prototypesVectors,
 		Radius:            radiusValues,
@@ -163,13 +163,13 @@ func Variance(vector *mat32.Dense) float32 {
 	return sumsqr - (sum * sum)
 }
 
-func (x xDnnModel) DensityIncremental(vector *mat32.Dense, index float32, class int) float32 {
+func (x XDnnModel) DensityIncremental(vector *mat32.Dense, index int, class int) float32 {
 	var incrementalMean *mat32.Dense
 	var dividedVector *mat32.Dense
 	var incrementalEuclideanNorm float32
-
-	f := index / (index + 1.0)
-	r := 1.0 / (index + 1.0)
+	findex := float32(index)
+	f := findex / (findex + 1.0)
+	r := 1.0 / (findex + 1.0)
 	incrementalMean = x.Classes[class].Mean.ProdScalar(mat32.NewScalar(f).Scalar()).(*mat32.Dense)
 	dividedVector = vector.ProdScalar(mat32.NewScalar(r).Scalar()).(*mat32.Dense)
 	incrementalMean = incrementalMean.Add(dividedVector).(*mat32.Dense)
@@ -181,7 +181,7 @@ func (x xDnnModel) DensityIncremental(vector *mat32.Dense, index float32, class 
 	return 1.0 / (1.0 + (diffSquaredNorm + incrementalEuclideanNorm - incrMeanSquaredNorm))
 }
 
-func (x xDnnModel) Density(vector *mat32.Dense, class int) float32 {
+func (x XDnnModel) Density(vector *mat32.Dense, class int) float32 {
 	mean := x.Classes[class].Mean
 	euclideanNorm := x.Classes[class].SumSquaredNorm
 	diffSquaredNorm := SquaredNorm(vector.Sub(mean).(*mat32.Dense))
@@ -215,7 +215,7 @@ type maxminPair struct {
 	min float32
 }
 
-func (x xDnnModel) getMaxMinPrototype(class int) maxminPair {
+func (x XDnnModel) getMaxMinPrototype(class int) maxminPair {
 	r := maxminPair{
 		max: float32(-math.MaxFloat32),
 		min: float32(math.MaxFloat32),
@@ -232,7 +232,7 @@ func (x xDnnModel) getMaxMinPrototype(class int) maxminPair {
 	return r
 }
 
-func (x xDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
+func (x XDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
 	argmin := 0
 	minNorm := float32(math.MaxFloat32)
 	for j, p := range x.Classes[class].PrototypesVectors {
@@ -244,7 +244,7 @@ func (x xDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
 	return argmin
 }
 
-func (x xDnnModel) CheckExample(vector *mat32.Dense, index float32, class int) {
+func (x XDnnModel) CheckExample(vector *mat32.Dense, index int, class int) {
 	sampleDensity := x.DensityIncremental(vector, index, class)
 	prototypesDensity := x.getMaxMinPrototype(class)
 	nearestPrototypeIndex := x.GetNearestPrototype(vector, class)
@@ -255,13 +255,13 @@ func (x xDnnModel) CheckExample(vector *mat32.Dense, index float32, class int) {
 	}
 }
 
-func (x xDnnModel) AddDataCloud(vector *mat32.Dense, class int) {
+func (x XDnnModel) AddDataCloud(vector *mat32.Dense, class int) {
 	x.Classes[class].PrototypesVectors = append(x.Classes[class].PrototypesVectors, vector)
 	x.Classes[class].PrototypesSupport = append(x.Classes[class].PrototypesSupport, 1)
 	x.Classes[class].Radius = append(x.Classes[class].Radius, 1.30057568)
 }
 
-func (x xDnnModel) UpdateDatacloud(vector *mat32.Dense, prototypeIndex int, class int) {
+func (x XDnnModel) UpdateDatacloud(vector *mat32.Dense, prototypeIndex int, class int) {
 	prototypeNorm := SquaredNorm(x.Classes[class].PrototypesVectors[prototypeIndex])
 	curSupport := x.Classes[class].PrototypesSupport[prototypeIndex]
 	f := float32(curSupport / (curSupport + 1.0))
