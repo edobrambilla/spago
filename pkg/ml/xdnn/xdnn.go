@@ -245,6 +245,9 @@ func (x XDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
 }
 
 func (x XDnnModel) CheckExample(vector *mat32.Dense, index int, class int) {
+	if x.Classes[class] == nil {
+		x.Classes[class] = NewxDNNClass(vector)
+	}
 	sampleDensity := x.DensityIncremental(vector, index, class)
 	prototypesDensity := x.getMaxMinPrototype(class)
 	nearestPrototypeIndex := x.GetNearestPrototype(vector, class)
