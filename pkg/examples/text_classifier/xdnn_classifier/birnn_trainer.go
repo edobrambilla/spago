@@ -15,12 +15,14 @@ import (
 	"github.com/nlpodyssey/spago/pkg/ml/losses"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/activation"
+	"github.com/nlpodyssey/spago/pkg/ml/nn/birnn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/linear"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/normalization/layernorm"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/recurrent/lstm"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/recurrent/srnn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/stack"
 	"github.com/nlpodyssey/spago/pkg/ml/optimizers/gd"
+	"github.com/nlpodyssey/spago/pkg/ml/xdnn"
 	"github.com/nlpodyssey/spago/pkg/nlp/embeddings"
 	"github.com/nlpodyssey/spago/pkg/nlp/tokenizers/wordpiecetokenizer"
 	"github.com/nlpodyssey/spago/pkg/nlp/vocabulary"
@@ -41,6 +43,7 @@ type BiRNNTrainer struct {
 	countLines    int
 	curLoss       float32
 	curEpoch      int
+	useXDNN       bool
 	xDNNExamples  []*xDNNExample
 }
 
@@ -57,10 +60,11 @@ type BiRNNClassifierModel struct {
 	nn.BaseModel
 	Config     BiRNNClassifierConfig
 	Embeddings *embeddings.Model
-	//BiRNN  	*birnn.Model
-	BiRNN      *srnn.BiModel
+	BiRNN      *birnn.Model
+	//BiRNN      *srnn.BiModel
 	Classifier *stack.Model
 	Labels     []string
+	XDNNModel  *xdnn.XDnnModel
 }
 
 func NewBiSRNN(input, hidden int) *srnn.BiModel {
@@ -77,12 +81,12 @@ func NewBiSRNN(input, hidden int) *srnn.BiModel {
 
 func (m *BiRNNClassifierModel) InitBiRNNParameters(rndGen *rand.LockedRand) {
 	initStacked(m.Classifier, rndGen)
-	initStacked(m.BiRNN.FC, rndGen)
-	initLinear(m.BiRNN.FC2, rndGen)
-	initLinear(m.BiRNN.FC3, rndGen)
-	initLayernorm(m.BiRNN.LayerNorm, rndGen)
-	//initRecurrent(m.BiRNN.Negative.(*lstm.Model), rndGen)
-	//initRecurrent(m.BiRNN.Positive.(*lstm.Model), rndGen)
+	//initStacked(m.BiRNN.FC, rndGen)
+	//initLinear(m.BiRNN.FC2, rndGen)
+	//initLinear(m.BiRNN.FC3, rndGen)
+	//initLayernorm(m.BiRNN.LayerNorm, rndGen)
+	initRecurrent(m.BiRNN.Negative.(*lstm.Model), rndGen)
+	initRecurrent(m.BiRNN.Positive.(*lstm.Model), rndGen)
 }
 
 func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
@@ -104,11 +108,13 @@ func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
 func initLinear(model *linear.Model, rndGen *rand.LockedRand) {
 	gain := 1.0
 	initializers.XavierUniform(model.W.Value(), mat32.Float(gain), rndGen)
+	initializers.XavierUniform(model.B.Value(), mat32.Float(gain), rndGen)
 }
 
 func initLayernorm(model *layernorm.Model, rndGen *rand.LockedRand) {
 	gain := 1.0
 	initializers.XavierUniform(model.W.Value(), mat32.Float(gain), rndGen)
+	initializers.XavierUniform(model.B.Value(), mat32.Float(gain), rndGen)
 }
 
 func initRecurrent(model *lstm.Model, rndGen *rand.LockedRand) {
@@ -124,6 +130,20 @@ func initRecurrent(model *lstm.Model, rndGen *rand.LockedRand) {
 }
 
 func NewBiRNNClassifierModel(config BiRNNClassifierConfig) *BiRNNClassifierModel {
+	labels := func(x map[string]string) []string {
+		if len(x) == 0 {
+			return []string{"LABEL_0", "LABEL_1"} // assume binary classification by default
+		}
+		y := make([]string, len(x))
+		for k, v := range x {
+			i, err := strconv.Atoi(k)
+			if err != nil {
+				log.Fatal(err)
+			}
+			y[i] = v
+		}
+		return y
+	}(config.Id2Label)
 	return &BiRNNClassifierModel{
 		Config: config,
 		Embeddings: embeddings.New(embeddings.Config{
@@ -133,35 +153,24 @@ func NewBiRNNClassifierModel(config BiRNNClassifierConfig) *BiRNNClassifierModel
 			ReadOnly:         false,
 			ForceNewDB:       true,
 		}),
-		//BiRNN: birnn.NewBiLSTM(config.InputSize, config.OutputSize, birnn.Concat),
-		BiRNN: NewBiSRNN(config.InputSize, config.OutputSize),
+		BiRNN: birnn.NewBiLSTM(config.InputSize, config.OutputSize, birnn.Concat),
+		//BiRNN: NewBiSRNN(config.InputSize, config.OutputSize),
 		Classifier: stack.New(
-			linear.New(2*config.OutputSize, len(config.Id2Label)),
+			linear.New(4*config.OutputSize, len(config.Id2Label)),
 			activation.New(ag.OpIdentity),
 		),
-		Labels: func(x map[string]string) []string {
-			if len(x) == 0 {
-				return []string{"LABEL_0", "LABEL_1"} // assume binary classification by default
-			}
-			y := make([]string, len(x))
-			for k, v := range x {
-				i, err := strconv.Atoi(k)
-				if err != nil {
-					log.Fatal(err)
-				}
-				y[i] = v
-			}
-			return y
-		}(config.Id2Label),
+		Labels:    labels,
+		XDNNModel: xdnn.NewDefaultxDNN(len(config.Id2Label), labels),
 	}
 }
 
-func NewBiRNNTrainer(model *BiRNNClassifierModel, config TrainingConfig, optimizer *gd.GradientDescent) *BiRNNTrainer {
+func NewBiRNNTrainer(model *BiRNNClassifierModel, config TrainingConfig, optimizer *gd.GradientDescent, xdnn bool) *BiRNNTrainer {
 	return &BiRNNTrainer{
 		TrainingConfig: config,
 		randGen:        rand.NewLockedRand(config.Seed),
 		optimizer:      optimizer,
 		model:          model,
+		useXDNN:        xdnn,
 		xDNNExamples:   make([]*xDNNExample, 0),
 	}
 }
@@ -325,6 +334,25 @@ func (t *BiRNNTrainer) trainEpoch() {
 	uip.Start() // start bar rendering
 	t.trainBatches(func() { bar.Incr() })
 	uip.Stop()
+	if t.useXDNN {
+		t.TrainXDNN(t.xDNNExamples)
+	} else {
+		t.zeroXDNN()
+	}
 	precision := NewEvaluator(t.model, t.TrainingConfig, "birnn").Evaluate(t.curEpoch).Precision()
 	fmt.Printf("Accuracy: %.2f\n", 100*precision)
+}
+
+func (t *BiRNNTrainer) TrainXDNN(xDNNExamples []*xDNNExample) {
+	xDNNModel := t.model.XDNNModel
+	for i, example := range xDNNExamples {
+		xDNNModel.CheckExample(&example.BiRNNVector, i, example.Category)
+	}
+}
+
+func (t *BiRNNTrainer) zeroXDNN() {
+	xDNNModel := t.model.XDNNModel
+	for i := 0; i < len(xDNNModel.Classes); i++ {
+		xDNNModel.Classes[i] = xdnn.NewxDNNClass(mat32.NewEmptyVecDense(t.model.Config.OutputSize))
+	}
 }
