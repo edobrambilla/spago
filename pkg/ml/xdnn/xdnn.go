@@ -260,6 +260,7 @@ func (x XDnnModel) CheckExample(vector *mat32.Dense, index int, class int) {
 }
 
 func (x XDnnModel) AddDataCloud(vector *mat32.Dense, class int) {
+	x.Classes[class].Prototypes += 1
 	x.Classes[class].PrototypesVectors = append(x.Classes[class].PrototypesVectors, vector)
 	x.Classes[class].PrototypesSupport = append(x.Classes[class].PrototypesSupport, 1)
 	x.Classes[class].Radius = append(x.Classes[class].Radius, 1.30057568)
