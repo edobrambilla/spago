@@ -132,6 +132,21 @@ func Test_Density(t *testing.T) {
 	assertEqualApprox(t, 0.01877758, d)
 }
 
+func Test_CheckExample(t *testing.T) {
+	a := make([]*mat32.Dense, 5)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a[3] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a[4] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	model := simpleXDNN()
+	model.CheckExample(a[0], 0, 0)
+	assert.Equal(t, model.Classes[0].Prototypes, 1)
+	assert.Equal(t, model.Classes[0].PrototypesSupport[0], 1)
+	assert.Equal(t, model.Classes[0].PrototypesVectors[0], mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3}))
+	assert.Equal(t, model.Classes[0].Mean, mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3}))
+}
+
 func assertEqualApprox(t *testing.T, expected, actual float32) {
 	t.Helper()
 	assert.InDelta(t, expected, actual, 1.0e-04)

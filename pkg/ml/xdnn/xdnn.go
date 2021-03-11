@@ -64,7 +64,7 @@ func NewxDNNClass(vector *mat32.Dense) *XDnnClass {
 	radiusValues := make([]float32, 0)
 	radiusValues = append(radiusValues, 1.30057568)
 	return &XDnnClass{
-		//PrototypesID:      prototypesID,
+		PrototypesSupport: prototypesSupport,
 		PrototypesVectors: prototypesVectors,
 		Radius:            radiusValues,
 		Prototypes:        1,
@@ -247,14 +247,15 @@ func (x XDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
 func (x XDnnModel) CheckExample(vector *mat32.Dense, index int, class int) {
 	if x.Classes[class] == nil {
 		x.Classes[class] = NewxDNNClass(vector)
-	}
-	sampleDensity := x.DensityIncremental(vector, index, class)
-	prototypesDensity := x.getMaxMinPrototype(class)
-	nearestPrototypeIndex := x.GetNearestPrototype(vector, class)
-	if (sampleDensity >= prototypesDensity.max) || (sampleDensity <= prototypesDensity.min) {
-		x.AddDataCloud(vector, class)
 	} else {
-		x.UpdateDatacloud(vector, nearestPrototypeIndex, class)
+		sampleDensity := x.DensityIncremental(vector, index, class)
+		prototypesDensity := x.getMaxMinPrototype(class)
+		nearestPrototypeIndex := x.GetNearestPrototype(vector, class)
+		if (sampleDensity >= prototypesDensity.max) || (sampleDensity <= prototypesDensity.min) {
+			x.AddDataCloud(vector, class)
+		} else {
+			x.UpdateDatacloud(vector, nearestPrototypeIndex, class)
+		}
 	}
 }
 
