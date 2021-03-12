@@ -38,7 +38,7 @@ func biRNNTrain(modelPath string, trainingPath string, testPath string) {
 			"05000000": 4,
 			"06000000": 5},
 	}
-	t := trainer.NewBiRNNTrainer(model, config, optimizer, false)
+	t := trainer.NewBiRNNTrainer(model, config, optimizer, true)
 	//get vocabulary
 	v := t.GetVocabulary()
 	model.SetEmbeddings(*v)
