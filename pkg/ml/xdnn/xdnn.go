@@ -239,6 +239,7 @@ func (x XDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
 		norm := Norm(p.Sub(vector).(*mat32.Dense))
 		if norm < minNorm {
 			argmin = j
+			minNorm = norm
 		}
 	}
 	return argmin
@@ -268,10 +269,11 @@ func (x XDnnModel) AddDataCloud(vector *mat32.Dense, class int) {
 
 func (x XDnnModel) UpdateDatacloud(vector *mat32.Dense, prototypeIndex int, class int) {
 	prototypeNorm := SquaredNorm(x.Classes[class].PrototypesVectors[prototypeIndex])
-	curSupport := x.Classes[class].PrototypesSupport[prototypeIndex]
-	f := float32(curSupport / (curSupport + 1.0))
+	curSupport := float32(x.Classes[class].PrototypesSupport[prototypeIndex])
+	f := curSupport / (curSupport + 1.0)
+	r := 1.0 / (curSupport + 1.0)
 	upPrototype := x.Classes[class].PrototypesVectors[prototypeIndex].ProdScalar(f)
-	upExample := vector.ProdScalar(f)
+	upExample := vector.ProdScalar(r)
 	squaredRadius := x.Classes[class].Radius[prototypeIndex] * x.Classes[class].Radius[prototypeIndex]
 	upRadius := mat32.Sqrt((squaredRadius + 1.0 - prototypeNorm) / 2.0)
 	x.Classes[class].PrototypesSupport[prototypeIndex] += 1

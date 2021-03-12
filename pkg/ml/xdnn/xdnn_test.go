@@ -151,6 +151,28 @@ func Test_CheckExample(t *testing.T) {
 	assert.Equal(t, model.Classes[0].PrototypesSupport[1], 1)
 	assert.Equal(t, model.Classes[0].PrototypesVectors[0], mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3}))
 	assert.Equal(t, model.Classes[0].PrototypesVectors[1], mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3}))
+	model.CheckExample(a[2], 2, 0)
+	assert.Equal(t, model.Classes[0].Prototypes, 2)
+	assert.Equal(t, model.Classes[0].PrototypesSupport[0], 2)
+	assert.Equal(t, model.Classes[0].PrototypesSupport[1], 1)
+	assertSliceEqualApprox(t, model.Classes[0].PrototypesVectors[0].Data(), []float32{-1.1, 2.9, 1.45, 1.35, -0.35, 2.9})
+	assertSliceEqualApprox(t, model.Classes[0].PrototypesVectors[1].Data(), []float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	model.CheckExample(a[3], 3, 0)
+	assert.Equal(t, model.Classes[0].Prototypes, 2)
+	assert.Equal(t, model.Classes[0].PrototypesSupport[0], 3)
+	assert.Equal(t, model.Classes[0].PrototypesSupport[1], 1)
+	assertSliceEqualApprox(t, model.Classes[0].PrototypesVectors[0].Data(), []float32{
+		-0.6333326001, 2.7999980658, 0.633332367, 1.8333324324, 0.9333335655, 1.4666647338,
+	})
+	assertSliceEqualApprox(t, model.Classes[0].PrototypesVectors[1].Data(), []float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	model.CheckExample(a[4], 4, 0)
+	assert.Equal(t, model.Classes[0].Prototypes, 2)
+	assert.Equal(t, model.Classes[0].PrototypesSupport[0], 4)
+	assert.Equal(t, model.Classes[0].PrototypesSupport[1], 1)
+	assertSliceEqualApprox(t, model.Classes[0].PrototypesVectors[0].Data(), []float32{
+		-0.625, 2.05, 0.6, 1.575, -0.049999, 0.85,
+	})
+	assertSliceEqualApprox(t, model.Classes[0].PrototypesVectors[1].Data(), []float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
 }
 
 func assertEqualApprox(t *testing.T, expected, actual float32) {
