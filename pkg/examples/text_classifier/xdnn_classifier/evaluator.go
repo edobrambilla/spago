@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/gosuri/uiprogress"
+	"github.com/nlpodyssey/spago/pkg/mat32"
 	"github.com/nlpodyssey/spago/pkg/mat32/floatutils"
 	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
@@ -49,14 +50,22 @@ func (e *Evaluator) Predict(tokenizedExample []string) int {
 	g := ag.NewGraph()
 	c := nn.Context{Graph: g, Mode: nn.Inference}
 	var y ag.Node
+	var category int
 	if e.modelType == "birnn" {
 		model := nn.Reify(c, e.model).(*BiRNNClassifierModel)
 		y = model.Forward(tokenizedExample)[0]
+		category = floatutils.ArgMax(y.Value().Data())
+		//println (category)
+	} else if e.modelType == "xdnn" {
+		model := nn.Reify(c, e.model).(*BiRNNClassifierModel)
+		encodedText := model.EncodeText(tokenizedExample)
+		category = model.XDNNModel.Classify(encodedText.Value().(*mat32.Dense))
+		//println (category)
 	} else {
 		panic("Evaluator: Wrong model type")
 	}
 	defer g.Clear()
-	return floatutils.ArgMax(y.Value().Data())
+	return category
 }
 
 func (e *Evaluator) Evaluate(epoch int) *stats.ClassMetrics {
@@ -71,6 +80,8 @@ func (e *Evaluator) Evaluate(epoch int) *stats.ClassMetrics {
 		tokenizedExample := GetTokenizedExample(example, e.includeTitle, e.includeBody)
 		if len(tokenizedExample) > 0 {
 			tokenizedExample = PadTokens(tokenizedExample, 5)
+			println("---------")
+			println("category " + string(e.labelsMap[example.Category]))
 			if e.Predict(tokenizedExample) == e.labelsMap[example.Category] {
 				counter.IncTruePos()
 			} else {

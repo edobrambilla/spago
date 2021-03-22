@@ -35,7 +35,8 @@ type XDnnClass struct {
 	//Samples           int
 	PrototypesSupport []int // Number of members associated to prototypes in this class
 	PrototypesVectors []*mat32.Dense
-	Radius            []float32 // Degree of similarity between two vectors
+	//PrototypesDescription []string
+	Radius []float32 // Degree of similarity between two vectors
 	// Number of prototypes
 	Prototypes int `json:"prototypes"`
 	// Global mean per class
@@ -205,9 +206,33 @@ func Norm(vector *mat32.Dense) float32 {
 	return mat32.Sqrt(sum)
 }
 
-func Similarity(vectorA *mat32.Dense, vectorB *mat32.Dense) float32 {
+func similarity(vectorA *mat32.Dense, vectorB *mat32.Dense) float32 {
 	s := Variance(vectorB)
-	return 1.0 / (1.0 + (SquaredNorm(vectorA.Sub(vectorB).(*mat32.Dense)) / s))
+	return 1.0 / (1.0 + (Norm(vectorA.Sub(vectorB).(*mat32.Dense)) / s))
+}
+
+func (x XDnnModel) Classify(exampleVector *mat32.Dense) int {
+	maxClass := float32(-math.MaxFloat32)
+	var argmax int
+	var protoargmax int
+	for i, c := range x.Classes {
+		maxSimilarity := float32(-math.MaxFloat32)
+		for j, p := range c.PrototypesVectors {
+			similarity := similarity(exampleVector, p)
+			if similarity > maxSimilarity {
+				maxSimilarity = similarity
+				protoargmax = j
+			}
+		}
+		if maxSimilarity > maxClass {
+			maxClass = maxSimilarity
+			argmax = i
+		}
+	}
+	println("best prototype " + string(protoargmax))
+	println("best class " + string(argmax))
+	//println("max similarity: " + maxSimilarity)
+	return argmax
 }
 
 type maxminPair struct {

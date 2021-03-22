@@ -340,7 +340,9 @@ func (t *BiRNNTrainer) trainEpoch() {
 		t.zeroXDNN()
 	}
 	precision := NewEvaluator(t.model, t.TrainingConfig, "birnn").Evaluate(t.curEpoch).Precision()
-	fmt.Printf("Accuracy: %.2f\n", 100*precision)
+	fmt.Printf("Accuracy birnn: %.2f\n", 100*precision)
+	precision = NewEvaluator(t.model, t.TrainingConfig, "xdnn").Evaluate(t.curEpoch).Precision()
+	fmt.Printf("Accuracy xdnn: %.2f\n", 100*precision)
 }
 
 func (t *BiRNNTrainer) TrainXDNN(xDNNExamples []*xDNNExample) {

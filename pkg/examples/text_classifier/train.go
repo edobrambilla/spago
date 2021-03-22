@@ -23,7 +23,7 @@ func biRNNTrain(modelPath string, trainingPath string, testPath string) {
 	config := trainer.TrainingConfig{
 		Seed:             743,
 		BatchSize:        1,
-		Epochs:           4,
+		Epochs:           1,
 		GradientClipping: 0,
 		TrainCorpusPath:  trainingPath,
 		EvalCorpusPath:   testPath,
