@@ -34,13 +34,13 @@ type XDnnModel struct {
 type XDnnClass struct {
 	//Samples           int
 	PrototypesSupport []int // Number of members associated to prototypes in this class
-	PrototypesVectors []*mat32.Dense
+	PrototypesVectors []mat32.Dense
 	//PrototypesDescription []string
 	Radius []float32 // Degree of similarity between two vectors
 	// Number of prototypes
 	Prototypes int `json:"prototypes"`
 	// Global mean per class
-	Mean *mat32.Dense `json:"mean"`
+	Mean mat32.Dense `json:"mean"`
 	// Global sum squared norm per class
 	SumSquaredNorm float32 `json:"norm"`
 }
@@ -57,10 +57,10 @@ func NewDefaultxDNN(nClasses int, labels []string) *XDnnModel {
 	}
 }
 
-func NewxDNNClass(vector *mat32.Dense) *XDnnClass {
+func NewxDNNClass(vector mat32.Dense) *XDnnClass {
 	prototypesSupport := make([]int, 0)
 	prototypesSupport = append(prototypesSupport, 1)
-	prototypesVectors := make([]*mat32.Dense, 0)
+	prototypesVectors := make([]mat32.Dense, 0)
 	prototypesVectors = append(prototypesVectors, vector)
 	radiusValues := make([]float32, 0)
 	radiusValues = append(radiusValues, 1.30057568)
@@ -70,37 +70,37 @@ func NewxDNNClass(vector *mat32.Dense) *XDnnClass {
 		Radius:            radiusValues,
 		Prototypes:        1,
 		Mean:              vector,
-		SumSquaredNorm:    SquaredNorm(vector),
+		SumSquaredNorm:    SquaredNorm(&vector),
 	}
 }
 
-func Standardize(vectors []*mat32.Dense) []*mat32.Dense {
-	ret := make([]*mat32.Dense, len(vectors))
+func Standardize(vectors []mat32.Dense) []mat32.Dense {
+	ret := make([]mat32.Dense, len(vectors))
 	average := Average(vectors)
 	stdev := StdDev(vectors)
 	for i, v := range vectors {
-		sub := v.Sub(average).(*mat32.Dense)
-		div := sub.Div(stdev).(*mat32.Dense)
-		ret[i] = div
+		sub := v.Sub(&average).(*mat32.Dense)
+		div := sub.Div(&stdev).(*mat32.Dense)
+		ret[i] = *div
 	}
 	return ret
 }
 
-func Normalize(vectors []*mat32.Dense) []*mat32.Dense {
-	ret := make([]*mat32.Dense, len(vectors))
+func Normalize(vectors []mat32.Dense) []mat32.Dense {
+	ret := make([]mat32.Dense, len(vectors))
 	standardizedVectors := Standardize(vectors)
 	min := Min(standardizedVectors)
 	max := Max(standardizedVectors)
-	diff := max.Sub(min)
+	diff := max.Sub(&min)
 	for i, v := range standardizedVectors {
-		sub := v.Sub(min).(*mat32.Dense)
+		sub := v.Sub(&min).(*mat32.Dense)
 		div := sub.Div(diff).(*mat32.Dense)
-		ret[i] = div
+		ret[i] = *div
 	}
 	return ret
 }
 
-func Min(vectors []*mat32.Dense) *mat32.Dense {
+func Min(vectors []mat32.Dense) mat32.Dense {
 	minVector := mat32.NewInitDense(vectors[0].Rows(), vectors[0].Columns(), math.MaxFloat32)
 	for _, v := range vectors {
 		for j := 0; j < minVector.Size(); j++ {
@@ -109,10 +109,10 @@ func Min(vectors []*mat32.Dense) *mat32.Dense {
 			}
 		}
 	}
-	return minVector
+	return *minVector
 }
 
-func Max(vectors []*mat32.Dense) *mat32.Dense {
+func Max(vectors []mat32.Dense) mat32.Dense {
 	maxvector := mat32.NewInitDense(vectors[0].Rows(), vectors[0].Columns(), -math.MaxFloat32)
 	for _, v := range vectors {
 		for j := 0; j < maxvector.Size(); j++ {
@@ -121,20 +121,20 @@ func Max(vectors []*mat32.Dense) *mat32.Dense {
 			}
 		}
 	}
-	return maxvector
+	return *maxvector
 }
 
-func Average(vectors []*mat32.Dense) *mat32.Dense {
+func Average(vectors []mat32.Dense) mat32.Dense {
 	sum := mat32.NewEmptyVecDense(vectors[0].Size())
 	for _, v := range vectors {
 		for j := 0; j < sum.Size(); j++ {
 			sum.Data()[j] += v.Data()[j]
 		}
 	}
-	return sum.ProdScalar(mat32.NewScalar(1.0 / float32(len(vectors))).Scalar()).(*mat32.Dense)
+	return *sum.ProdScalar(mat32.NewScalar(1.0 / float32(len(vectors))).Scalar()).(*mat32.Dense)
 }
 
-func StdDev(vectors []*mat32.Dense) *mat32.Dense {
+func StdDev(vectors []mat32.Dense) mat32.Dense {
 	sum := mat32.NewEmptyVecDense(vectors[0].Size())
 	sumsqr := mat32.NewEmptyVecDense(vectors[0].Size())
 	for _, v := range vectors {
@@ -149,10 +149,10 @@ func StdDev(vectors []*mat32.Dense) *mat32.Dense {
 	diff := sumsqr.Sub(sum)
 	//diff = diff.ProdScalar(mat32.NewScalar(1.0 / float32(len(vectors))).Scalar())
 	sqrt := diff.Sqrt()
-	return sqrt.(*mat32.Dense)
+	return *sqrt.(*mat32.Dense)
 }
 
-func Variance(vector *mat32.Dense) float32 {
+func Variance(vector mat32.Dense) float32 {
 	sum := float32(0.0)
 	sumsqr := float32(0.0)
 	for _, v := range vector.Data() {
@@ -164,7 +164,7 @@ func Variance(vector *mat32.Dense) float32 {
 	return sumsqr - (sum * sum)
 }
 
-func (x XDnnModel) DensityIncremental(vector *mat32.Dense, index int, class int) float32 {
+func (x XDnnModel) DensityIncremental(vector mat32.Dense, index int, class int) float32 {
 	var incrementalMean *mat32.Dense
 	var dividedVector *mat32.Dense
 	var incrementalEuclideanNorm float32
@@ -174,19 +174,19 @@ func (x XDnnModel) DensityIncremental(vector *mat32.Dense, index int, class int)
 	incrementalMean = x.Classes[class].Mean.ProdScalar(mat32.NewScalar(f).Scalar()).(*mat32.Dense)
 	dividedVector = vector.ProdScalar(mat32.NewScalar(r).Scalar()).(*mat32.Dense)
 	incrementalMean = incrementalMean.Add(dividedVector).(*mat32.Dense)
-	incrementalEuclideanNorm = (f * x.Classes[class].SumSquaredNorm) + (r * SquaredNorm(vector))
+	incrementalEuclideanNorm = (f * x.Classes[class].SumSquaredNorm) + (r * SquaredNorm(&vector))
 	diffSquaredNorm := SquaredNorm(vector.Sub(incrementalMean).(*mat32.Dense))
 	incrMeanSquaredNorm := SquaredNorm(incrementalMean)
-	x.Classes[class].Mean = incrementalMean
+	x.Classes[class].Mean = *incrementalMean
 	x.Classes[class].SumSquaredNorm = incrementalEuclideanNorm
 	return 1.0 / (1.0 + (diffSquaredNorm + incrementalEuclideanNorm - incrMeanSquaredNorm))
 }
 
-func (x XDnnModel) Density(vector *mat32.Dense, class int) float32 {
+func (x XDnnModel) Density(vector mat32.Dense, class int) float32 {
 	mean := x.Classes[class].Mean
 	euclideanNorm := x.Classes[class].SumSquaredNorm
-	diffSquaredNorm := SquaredNorm(vector.Sub(mean).(*mat32.Dense))
-	incrMeanSquaredNorm := SquaredNorm(mean)
+	diffSquaredNorm := SquaredNorm(vector.Sub(&mean).(*mat32.Dense))
+	incrMeanSquaredNorm := SquaredNorm(&mean)
 	return 1.0 / (1.0 + (diffSquaredNorm + euclideanNorm - incrMeanSquaredNorm))
 }
 
@@ -206,32 +206,38 @@ func Norm(vector *mat32.Dense) float32 {
 	return mat32.Sqrt(sum)
 }
 
-func similarity(vectorA *mat32.Dense, vectorB *mat32.Dense) float32 {
-	s := Variance(vectorB)
-	return 1.0 / (1.0 + (Norm(vectorA.Sub(vectorB).(*mat32.Dense)) / s))
+func similarity(vectorA mat32.Dense, vectorB mat32.Dense) float32 {
+	//s := Variance(vectorB)
+	return 1.0 / (1.0 + (Norm(vectorA.Sub(&vectorB).(*mat32.Dense))))
 }
 
-func (x XDnnModel) Classify(exampleVector *mat32.Dense) int {
+type prototypeScore struct {
+	index    int
+	maxScore float32
+}
+
+func (x XDnnModel) findMaxPrototype(exampleVector mat32.Dense, class int) prototypeScore {
+	out := prototypeScore{0, -math.MaxFloat32}
+	for j, p := range x.Classes[class].PrototypesVectors {
+		similarity := similarity(exampleVector, p)
+		if similarity > out.maxScore {
+			out.maxScore = similarity
+			out.index = j
+		}
+	}
+	return out
+}
+
+func (x XDnnModel) Classify(exampleVector mat32.Dense) int {
 	maxClass := float32(-math.MaxFloat32)
 	var argmax int
-	var protoargmax int
-	for i, c := range x.Classes {
-		maxSimilarity := float32(-math.MaxFloat32)
-		for j, p := range c.PrototypesVectors {
-			similarity := similarity(exampleVector, p)
-			if similarity > maxSimilarity {
-				maxSimilarity = similarity
-				protoargmax = j
-			}
-		}
-		if maxSimilarity > maxClass {
-			maxClass = maxSimilarity
+	for i := range x.Classes {
+		maxP := x.findMaxPrototype(exampleVector, i)
+		if maxP.maxScore > maxClass {
+			maxClass = maxP.maxScore
 			argmax = i
 		}
 	}
-	println("best prototype " + string(protoargmax))
-	println("best class " + string(argmax))
-	//println("max similarity: " + maxSimilarity)
 	return argmax
 }
 
@@ -257,11 +263,11 @@ func (x XDnnModel) getMaxMinPrototype(class int) maxminPair {
 	return r
 }
 
-func (x XDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
+func (x XDnnModel) GetNearestPrototype(vector mat32.Dense, class int) int {
 	argmin := 0
 	minNorm := float32(math.MaxFloat32)
 	for j, p := range x.Classes[class].PrototypesVectors {
-		norm := Norm(p.Sub(vector).(*mat32.Dense))
+		norm := Norm(p.Sub(&vector).(*mat32.Dense))
 		if norm < minNorm {
 			argmin = j
 			minNorm = norm
@@ -270,14 +276,17 @@ func (x XDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
 	return argmin
 }
 
-func (x XDnnModel) CheckExample(vector *mat32.Dense, index int, class int) {
+func (x XDnnModel) CheckExample(vector mat32.Dense, index int, class int, radius bool) {
 	if x.Classes[class] == nil {
 		x.Classes[class] = NewxDNNClass(vector)
 	} else {
 		sampleDensity := x.DensityIncremental(vector, index, class)
 		prototypesDensity := x.getMaxMinPrototype(class)
 		nearestPrototypeIndex := x.GetNearestPrototype(vector, class)
-		if (sampleDensity >= prototypesDensity.max) || (sampleDensity <= prototypesDensity.min) {
+		nearestVector := x.Classes[class].PrototypesVectors[nearestPrototypeIndex]
+		sub := nearestVector.Sub(&vector)
+		if (sampleDensity >= prototypesDensity.max) || (sampleDensity <= prototypesDensity.min) || (radius &&
+			Norm(sub.(*mat32.Dense)) > x.Classes[class].Radius[nearestPrototypeIndex]) {
 			x.AddDataCloud(vector, class)
 		} else {
 			x.UpdateDatacloud(vector, nearestPrototypeIndex, class)
@@ -285,15 +294,15 @@ func (x XDnnModel) CheckExample(vector *mat32.Dense, index int, class int) {
 	}
 }
 
-func (x XDnnModel) AddDataCloud(vector *mat32.Dense, class int) {
+func (x XDnnModel) AddDataCloud(vector mat32.Dense, class int) {
 	x.Classes[class].Prototypes += 1
 	x.Classes[class].PrototypesVectors = append(x.Classes[class].PrototypesVectors, vector)
 	x.Classes[class].PrototypesSupport = append(x.Classes[class].PrototypesSupport, 1)
 	x.Classes[class].Radius = append(x.Classes[class].Radius, 1.30057568)
 }
 
-func (x XDnnModel) UpdateDatacloud(vector *mat32.Dense, prototypeIndex int, class int) {
-	prototypeNorm := SquaredNorm(x.Classes[class].PrototypesVectors[prototypeIndex])
+func (x XDnnModel) UpdateDatacloud(vector mat32.Dense, prototypeIndex int, class int) {
+	prototypeNorm := SquaredNorm(&x.Classes[class].PrototypesVectors[prototypeIndex])
 	curSupport := float32(x.Classes[class].PrototypesSupport[prototypeIndex])
 	f := curSupport / (curSupport + 1.0)
 	r := 1.0 / (curSupport + 1.0)
@@ -302,6 +311,6 @@ func (x XDnnModel) UpdateDatacloud(vector *mat32.Dense, prototypeIndex int, clas
 	squaredRadius := x.Classes[class].Radius[prototypeIndex] * x.Classes[class].Radius[prototypeIndex]
 	upRadius := mat32.Sqrt((squaredRadius + 1.0 - prototypeNorm) / 2.0)
 	x.Classes[class].PrototypesSupport[prototypeIndex] += 1
-	x.Classes[class].PrototypesVectors[prototypeIndex] = upPrototype.Add(upExample).(*mat32.Dense)
+	x.Classes[class].PrototypesVectors[prototypeIndex] = *upPrototype.Add(upExample).(*mat32.Dense)
 	x.Classes[class].Radius[prototypeIndex] = upRadius
 }
