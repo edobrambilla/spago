@@ -11,10 +11,10 @@ import (
 )
 
 func Test_Average(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 
 	m := Average(a)
 
@@ -24,10 +24,10 @@ func Test_Average(t *testing.T) {
 }
 
 func Test_StdDev(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 
 	s := StdDev(a)
 
@@ -37,10 +37,10 @@ func Test_StdDev(t *testing.T) {
 }
 
 func Test_Min(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 
 	s := Min(a)
 
@@ -50,10 +50,10 @@ func Test_Min(t *testing.T) {
 }
 
 func Test_Max(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 
 	s := Max(a)
 
@@ -63,10 +63,10 @@ func Test_Max(t *testing.T) {
 }
 
 func Test_Standardize(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 
 	s := Standardize(a)
 
@@ -82,10 +82,10 @@ func Test_Standardize(t *testing.T) {
 }
 
 func Test_Normalize(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 
 	s := Normalize(a)
 
@@ -107,9 +107,9 @@ func Test_SquaredNorm(t *testing.T) {
 }
 
 func Test_DensityIncremental(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
 	model := simpleXDNN()
 	model.Classes[0] = NewxDNNClass(a[0])
 	s := model.DensityIncremental(a[0], 0, 0)
@@ -119,10 +119,10 @@ func Test_DensityIncremental(t *testing.T) {
 }
 
 func Test_Density(t *testing.T) {
-	a := make([]mat32.Dense, 3)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a := make([]*mat32.Dense, 3)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
 	model := simpleXDNN()
 	model.Classes[0] = NewxDNNClass(a[0])
 	s := model.DensityIncremental(a[0], 0, 0)
@@ -133,24 +133,24 @@ func Test_Density(t *testing.T) {
 }
 
 func Test_CheckExample(t *testing.T) {
-	a := make([]mat32.Dense, 5)
-	a[0] = *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
-	a[1] = *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
-	a[2] = *mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
-	a[3] = *mat32.NewVecDense([]float32{0.3, 2.6, -1.0, 2.8, 3.5, -1.4})
-	a[4] = *mat32.NewVecDense([]float32{-0.6, -0.2, 0.5, 0.8, -3.0, -1.0})
+	a := make([]*mat32.Dense, 5)
+	a[0] = mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	a[1] = mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
+	a[2] = mat32.NewVecDense([]float32{0.0, 2.4, -0.3, -0.2, -0.1, 1.5})
+	a[3] = mat32.NewVecDense([]float32{0.3, 2.6, -1.0, 2.8, 3.5, -1.4})
+	a[4] = mat32.NewVecDense([]float32{-0.6, -0.2, 0.5, 0.8, -3.0, -1.0})
 	model := simpleXDNN()
 	model.CheckExample(a[0], 0, 0, false)
 	assert.Equal(t, model.Classes[0].Prototypes, 1)
 	assert.Equal(t, model.Classes[0].PrototypesSupport[0], 1)
-	assert.Equal(t, model.Classes[0].PrototypesVectors[0], *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3}))
-	assert.Equal(t, model.Classes[0].Mean, *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3}))
+	assert.Equal(t, model.Classes[0].PrototypesVectors[0].Data(), []float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	assert.Equal(t, model.Classes[0].Mean.Data(), []float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
 	model.CheckExample(a[1], 1, 0, false)
 	assert.Equal(t, model.Classes[0].Prototypes, 2)
 	assert.Equal(t, model.Classes[0].PrototypesSupport[0], 1)
 	assert.Equal(t, model.Classes[0].PrototypesSupport[1], 1)
-	assert.Equal(t, model.Classes[0].PrototypesVectors[0], *mat32.NewVecDense([]float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3}))
-	assert.Equal(t, model.Classes[0].PrototypesVectors[1], *mat32.NewVecDense([]float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3}))
+	assert.Equal(t, model.Classes[0].PrototypesVectors[0].Data(), []float32{-2.2, 3.4, 3.2, 2.9, -0.6, 4.3})
+	assert.Equal(t, model.Classes[0].PrototypesVectors[1].Data(), []float32{-0.3, 1.5, 0.9, -2.5, 0.4, 9.3})
 	model.CheckExample(a[2], 2, 0, false)
 	assert.Equal(t, model.Classes[0].Prototypes, 2)
 	assert.Equal(t, model.Classes[0].PrototypesSupport[0], 2)
