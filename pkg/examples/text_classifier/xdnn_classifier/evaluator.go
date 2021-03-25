@@ -55,12 +55,10 @@ func (e *Evaluator) Predict(tokenizedExample []string) int {
 		model := nn.Reify(c, e.model).(*BiRNNClassifierModel)
 		y = model.Forward(tokenizedExample)[0]
 		category = floatutils.ArgMax(y.Value().Data())
-		//println (category)
 	} else if e.modelType == "xdnn" {
 		model := nn.Reify(c, e.model).(*BiRNNClassifierModel)
 		encodedText := model.EncodeText(tokenizedExample)
-		category = model.XDNNModel.Classify(*encodedText.Value().(*mat32.Dense))
-		//println (category)
+		category = model.XDNNModel.Classify(encodedText.Value().(*mat32.Dense))
 	} else {
 		panic("Evaluator: Wrong model type")
 	}
@@ -70,24 +68,21 @@ func (e *Evaluator) Predict(tokenizedExample []string) int {
 
 func (e *Evaluator) Evaluate(epoch int) *stats.ClassMetrics {
 	uip := uiprogress.New()
-	//bar := e.newTestBar(uip, e.countLines, epoch)
+	bar := e.newTestBar(uip, e.countLines, epoch)
 	uip.Start()
 
 	counter := stats.NewMetricCounter()
 	err := e.forEachLine(func(i int, text string) {
-		//t.trainPassage(text)
 		example := GetExample(text)
 		tokenizedExample := GetTokenizedExample(example, e.includeTitle, e.includeBody)
 		if len(tokenizedExample) > 0 {
 			tokenizedExample = PadTokens(tokenizedExample, 5)
-			//println("---------")
-			//println(fmt.Sprintf("category %d", e.labelsMap[example.Category]))
 			if e.Predict(tokenizedExample) == e.labelsMap[example.Category] {
 				counter.IncTruePos()
 			} else {
 				counter.IncFalsePos()
 			}
-			//bar.Incr()
+			bar.Incr()
 		}
 	})
 	uip.Stop()
