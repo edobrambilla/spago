@@ -101,9 +101,6 @@ func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
 			if param.Type() == nn.Weights {
 				initializers.XavierUniform(param.Value(), mat32.Float(gain), rndGen)
 			}
-			if param.Type() == nn.Biases {
-				initializers.XavierUniform(param.Value(), mat32.Float(gain), rndGen)
-			}
 		})
 	}
 }
@@ -388,7 +385,7 @@ func (t *BiRNNTrainer) trainEpoch() {
 func (t *BiRNNTrainer) TrainXDNN(xDNNExamples []xDNNExample) {
 	xDNNModel := t.model.XDNNModel
 	for i, example := range xDNNExamples {
-		xDNNModel.CheckExample(example.BiRNNVector, i, example.Category, false)
+		xDNNModel.CheckExample(example.BiRNNVector, i, example.Category, true)
 	}
 }
 
