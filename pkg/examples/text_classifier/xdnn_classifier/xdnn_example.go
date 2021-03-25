@@ -7,7 +7,7 @@ package trainer
 import "github.com/nlpodyssey/spago/pkg/mat32"
 
 type xDNNExample struct {
-	Category      int         `json:"category"`
-	TokenizedText []string    `json:"text"`
-	BiRNNVector   mat32.Dense `json:"birnnvector"`
+	Category      int          `json:"category"`
+	TokenizedText []string     `json:"text"`
+	BiRNNVector   *mat32.Dense `json:"birnnvector"`
 }
