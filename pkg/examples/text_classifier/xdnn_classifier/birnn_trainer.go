@@ -101,6 +101,9 @@ func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
 			if param.Type() == nn.Weights {
 				initializers.XavierUniform(param.Value(), mat32.Float(gain), rndGen)
 			}
+			if param.Type() == nn.Biases {
+				initializers.XavierUniform(param.Value(), mat32.Float(gain), rndGen)
+			}
 		})
 	}
 }
@@ -179,7 +182,6 @@ func (m *BiRNNClassifierModel) EmbedSequence(words []string) []ag.Node {
 	encoded := make([]ag.Node, len(words))
 	wordEmbeddings := m.Embeddings.Encode(words)
 	sequenceIndex := 0
-	//r := rand.NewLockedRand(40)
 	for i := 0; i < len(words); i++ {
 		if wordEmbeddings[i] != nil {
 			encoded[i] = wordEmbeddings[i]
@@ -257,7 +259,7 @@ func (t *BiRNNTrainer) trainBatches(onExample func()) {
 
 // learn performs the backward respect to the cross-entropy loss, returned as scalar value
 func (t *BiRNNTrainer) learn(_ int, tokenizedExample []string, label int) float32 {
-	g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)))
+	g := ag.NewGraph(ag.Rand(rand.NewLockedRand(t.Seed)), ag.ConcurrentComputations(1))
 	c := nn.Context{Graph: g, Mode: nn.Training}
 	model := nn.Reify(c, t.model).(*BiRNNClassifierModel)
 	defer g.Clear()
@@ -285,7 +287,7 @@ func (t *BiRNNTrainer) setupXDNN(onExample func()) {
 }
 
 func (t *BiRNNTrainer) StandardizeExamples() {
-	standardizedExamples := make([]mat32.Dense, len(t.xDNNExamples))
+	standardizedExamples := make([]*mat32.Dense, len(t.xDNNExamples))
 	for i, v := range t.xDNNExamples {
 		standardizedExamples[i] = v.BiRNNVector
 	}
@@ -303,7 +305,7 @@ func (t *BiRNNTrainer) loadXDNNexample(_ int, tokenizedExample []string, label i
 	t.xDNNExamples = append(t.xDNNExamples, xDNNExample{ //for xdnn classifier
 		Category:      label,
 		TokenizedText: tokenizedExample,
-		BiRNNVector:   *encodedText.Value().(*mat32.Dense),
+		BiRNNVector:   g.GetCopiedValue(encodedText).(*mat32.Dense),
 	})
 }
 
@@ -369,14 +371,14 @@ func (t *BiRNNTrainer) trainEpoch() {
 	t.setupXDNN(func() { bar.Incr() })
 	uip.Stop()
 	if t.useXDNN {
-		//t.StandardizeExamples()
 		t.TrainXDNN(t.xDNNExamples)
+		for i, c := range t.model.XDNNModel.Classes {
+			println(fmt.Sprintf("Prototypes for class %d : %d", i+1, c.Prototypes))
+		}
 	} else {
 		t.zeroXDNN()
 	}
-	for _, c := range t.model.XDNNModel.Classes {
-		println(c.Prototypes)
-	}
+
 	precision := NewEvaluator(t.model, t.TrainingConfig, "birnn").Evaluate(t.curEpoch).Precision()
 	fmt.Printf("Accuracy birnn: %.2f\n", 100*precision)
 	precision = NewEvaluator(t.model, t.TrainingConfig, "xdnn").Evaluate(t.curEpoch).Precision()
@@ -386,13 +388,13 @@ func (t *BiRNNTrainer) trainEpoch() {
 func (t *BiRNNTrainer) TrainXDNN(xDNNExamples []xDNNExample) {
 	xDNNModel := t.model.XDNNModel
 	for i, example := range xDNNExamples {
-		xDNNModel.CheckExample(example.BiRNNVector, i, example.Category, true)
+		xDNNModel.CheckExample(example.BiRNNVector, i, example.Category, false)
 	}
 }
 
 func (t *BiRNNTrainer) zeroXDNN() {
 	xDNNModel := t.model.XDNNModel
 	for i := 0; i < len(xDNNModel.Classes); i++ {
-		xDNNModel.Classes[i] = xdnn.NewxDNNClass(*mat32.NewEmptyVecDense(t.model.Config.OutputSize))
+		xDNNModel.Classes[i] = xdnn.NewxDNNClass(mat32.NewEmptyVecDense(t.model.Config.OutputSize))
 	}
 }
