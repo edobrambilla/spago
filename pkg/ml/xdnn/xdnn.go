@@ -278,37 +278,7 @@ func (x XDnnModel) GetNearestPrototype(vector *mat32.Dense, class int) int {
 	return argmin
 }
 
-// Deep rule-based classifer for fnger knuckle pattern recognition
-//system
 func (x XDnnModel) CheckExample(vector *mat32.Dense, index int, class int, radius bool) {
-	if x.Classes[class] == nil {
-		x.Classes[class] = NewxDNNClass(vector)
-	} else {
-		sampleDensity := x.DensityIncremental(vector, index, class)
-		prototypesDensity := x.getMaxMinPrototype(class)
-
-		if (sampleDensity >= prototypesDensity.max) || (sampleDensity <= prototypesDensity.min) {
-			x.AddDataCloud(vector, class)
-		} else {
-			nearestPrototypeIndex := x.GetNearestPrototype(vector, class)
-			nearestVector := x.Classes[class].PrototypesVectors[nearestPrototypeIndex]
-			sub := vector.Sub(nearestVector)
-			if radius {
-				if Norm(sub.(*mat32.Dense)) < x.Classes[class].Radius[nearestPrototypeIndex] {
-					x.UpdateDatacloud(vector, nearestPrototypeIndex, class)
-				} else {
-					x.AddDataCloud(vector, class)
-				}
-			} else {
-				x.UpdateDatacloud(vector, nearestPrototypeIndex, class)
-			}
-		}
-	}
-}
-
-//SARS-CoV-2 CT-scan dataset: A large dataset of real
-//patients CT scans for SARS-CoV-2 identification
-func (x XDnnModel) CheckExampleOrig(vector *mat32.Dense, index int, class int, radius bool) {
 	if x.Classes[class] == nil {
 		x.Classes[class] = NewxDNNClass(vector)
 	} else {
@@ -318,7 +288,7 @@ func (x XDnnModel) CheckExampleOrig(vector *mat32.Dense, index int, class int, r
 		nearestVector := x.Classes[class].PrototypesVectors[nearestPrototypeIndex]
 		sub := nearestVector.Sub(vector)
 		if (sampleDensity >= prototypesDensity.max) || (sampleDensity <= prototypesDensity.min) || (radius &&
-			Norm(sub.(*mat32.Dense)) > x.Classes[class].Radius[nearestPrototypeIndex]) {
+			SquaredNorm(sub.(*mat32.Dense)) > x.Classes[class].Radius[nearestPrototypeIndex]) {
 			x.AddDataCloud(vector, class)
 		} else {
 			x.UpdateDatacloud(vector, nearestPrototypeIndex, class)
@@ -334,15 +304,18 @@ func (x XDnnModel) AddDataCloud(vector *mat32.Dense, class int) {
 }
 
 func (x XDnnModel) UpdateDatacloud(vector *mat32.Dense, prototypeIndex int, class int) {
-	prototypeNorm := SquaredNorm(x.Classes[class].PrototypesVectors[prototypeIndex])
+
 	curSupport := float32(x.Classes[class].PrototypesSupport[prototypeIndex])
 	f := curSupport / (curSupport + 1.0)
 	r := 1.0 / (curSupport + 1.0)
 	upPrototype := x.Classes[class].PrototypesVectors[prototypeIndex].ProdScalar(f)
 	upExample := vector.ProdScalar(r)
-	squaredRadius := x.Classes[class].Radius[prototypeIndex] * x.Classes[class].Radius[prototypeIndex]
-	upRadius := mat32.Sqrt((squaredRadius + 1.0 - prototypeNorm) / 2.0)
+
 	x.Classes[class].PrototypesSupport[prototypeIndex] += 1
 	x.Classes[class].PrototypesVectors[prototypeIndex] = upPrototype.Add(upExample).(*mat32.Dense)
+
+	prototypeNorm := SquaredNorm(x.Classes[class].PrototypesVectors[prototypeIndex])
+	vectorNorm := SquaredNorm(vector)
+	upRadius := 0.5*x.Classes[class].Radius[prototypeIndex] + mat32.Sqrt(0.25*mat32.Abs(vectorNorm-prototypeNorm))
 	x.Classes[class].Radius[prototypeIndex] = upRadius
 }
