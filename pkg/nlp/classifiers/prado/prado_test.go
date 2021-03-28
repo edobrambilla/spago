@@ -34,15 +34,15 @@ func TestModel_Forward(t *testing.T) {
 func getHashedVocabulary(vocabulary *vocabulary.Vocabulary, config EmbeddingsConfig) map[string]mat32.Matrix {
 	var outMap map[string]mat32.Matrix
 	outMap = make(map[string]mat32.Matrix)
-	r := rand.NewLockedRand(40)
+	//r := rand.NewLockedRand(40)
 	for _, word := range vocabulary.Items() {
-		outMap[word] = getHashCode(config, r)
+		outMap[word] = GetStringCode(word, config)
 	}
 	return outMap
 }
 
 func getVocabulary() *vocabulary.Vocabulary {
-	return vocabulary.New([]string{"airplane", "ball", "center", "data", "the", "big"})
+	return vocabulary.New([]string{"airplane", "ball", "bill", "data", "the", "big"})
 }
 
 func newTestModel() *Model {
@@ -50,7 +50,7 @@ func newTestModel() *Model {
 		EncodingActivation:    "ReLU",
 		ConvActivation:        "Identity",
 		ConvSize:              4,
-		InputSize:             6,
+		InputSize:             16,
 		ProjectionSize:        16,
 		ProjectionArity:       3,
 		EncodingSize:          8,

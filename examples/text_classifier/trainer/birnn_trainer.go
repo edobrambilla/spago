@@ -15,6 +15,7 @@ import (
 	"github.com/nlpodyssey/spago/pkg/ml/losses"
 	"github.com/nlpodyssey/spago/pkg/ml/nn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/activation"
+	"github.com/nlpodyssey/spago/pkg/ml/nn/birnn"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/linear"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/normalization/layernorm"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/recurrent/lstm"
@@ -56,8 +57,8 @@ type BiRNNClassifierModel struct {
 	nn.BaseModel
 	Config     BiRNNClassifierConfig
 	Embeddings *embeddings.Model
-	//BiRNN  	*birnn.Model
-	BiRNN      *srnn.BiModel
+	BiRNN      *birnn.Model
+	//BiRNN      *srnn.BiModel
 	Classifier *stack.Model
 	Labels     []string
 }
@@ -76,12 +77,12 @@ func NewBiSRNN(input, hidden int) *srnn.BiModel {
 
 func (m *BiRNNClassifierModel) InitBiRNNParameters(rndGen *rand.LockedRand) {
 	initStacked(m.Classifier, rndGen)
-	initStacked(m.BiRNN.FC, rndGen)
-	initLinear(m.BiRNN.FC2, rndGen)
-	initLinear(m.BiRNN.FC3, rndGen)
-	initLayernorm(m.BiRNN.LayerNorm, rndGen)
-	//initRecurrent(m.BiRNN.Negative.(*lstm.Model), rndGen)
-	//initRecurrent(m.BiRNN.Positive.(*lstm.Model), rndGen)
+	//initStacked(m.BiRNN.FC, rndGen)
+	//initLinear(m.BiRNN.FC2, rndGen)
+	//initLinear(m.BiRNN.FC3, rndGen)
+	//initLayernorm(m.BiRNN.LayerNorm, rndGen)
+	initRecurrent(m.BiRNN.Negative.(*lstm.Model), rndGen)
+	initRecurrent(m.BiRNN.Positive.(*lstm.Model), rndGen)
 }
 
 func initStacked(model *stack.Model, rndGen *rand.LockedRand) {
@@ -132,10 +133,10 @@ func NewBiRNNClassifierModel(config BiRNNClassifierConfig) *BiRNNClassifierModel
 			ReadOnly:         false,
 			ForceNewDB:       true,
 		}),
-		//BiRNN: birnn.NewBiLSTM(config.InputSize, config.OutputSize, birnn.Concat),
-		BiRNN: NewBiSRNN(config.InputSize, config.OutputSize),
+		BiRNN: birnn.NewBiLSTM(config.InputSize, config.OutputSize, birnn.Concat),
+		//BiRNN: NewBiSRNN(config.InputSize, config.OutputSize),
 		Classifier: stack.New(
-			linear.New(2*config.OutputSize, len(config.Id2Label)),
+			linear.New(4*config.OutputSize, len(config.Id2Label)),
 			activation.New(ag.OpIdentity),
 		),
 		Labels: func(x map[string]string) []string {

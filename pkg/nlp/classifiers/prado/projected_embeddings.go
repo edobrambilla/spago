@@ -96,9 +96,13 @@ func GetStringCode(s string, config EmbeddingsConfig) mat32.Matrix {
 	out := mat32.NewEmptyVecDense(config.InputSize)
 	c := 0
 	for _, char := range s {
-		if c < config.InputSize {
+		if c < config.InputSize-3 {
 			for n := 1; n <= 3; n++ {
-				out.Data()[c] = mat32.Float(float64(digit(int(char), n)))
+				f := -653
+				if char%2 == 0 {
+					f = 653
+				}
+				out.Data()[c] = mat32.Float(float64(digit(int(char*int32(f)), n)))
 				c++
 			}
 		}
