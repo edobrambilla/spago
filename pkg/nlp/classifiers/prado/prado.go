@@ -34,6 +34,7 @@ var (
 type Config struct {
 	EncodingActivation    string            `json:"hidden_act"`
 	ConvActivation        string            `json:"conv_act"`
+	OutputActivation      string            `json:"out_act"`
 	ConvSize              int               `json:"conv_size"`
 	InputSize             int               `json:"input_size"`
 	ProjectionSize        int               `json:"projection_sise"`
@@ -151,7 +152,7 @@ func NewDefaultPrado(config Config, embeddingsStoragePath string) *Model {
 				}
 				return y
 			}(config.Id2Label),
-			Activation: ag.OpIdentity,
+			Activation: mustGetOpName(config.OutputActivation),
 		}),
 	}
 }

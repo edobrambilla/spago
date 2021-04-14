@@ -49,6 +49,7 @@ func newTestModel() *Model {
 	config := Config{
 		EncodingActivation:    "ReLU",
 		ConvActivation:        "Identity",
+		OutputActivation:      "Identity",
 		ConvSize:              4,
 		InputSize:             16,
 		ProjectionSize:        16,
