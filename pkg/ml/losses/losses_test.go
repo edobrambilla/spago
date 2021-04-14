@@ -49,6 +49,18 @@ func TestCrossEntropyLoss(t *testing.T) {
 	assert.InDeltaSlice(t, []mat.Float{0.0, 0.1, -0.8, 0.7}, x.Grad().Data(), 1.0e-6)
 }
 
+func TestFocalLoss(t *testing.T) {
+	g := ag.NewGraph()
+	x := g.NewVariable(mat.NewVecDense([]mat.Float{0.1, 0.2, 0.3, 0.4}), true)
+	loss := FocalLoss(g, x, 2, 2.0)
+
+	assertEqualApprox(t, 0.73282546, loss.Value().Scalar())
+
+	g.Backward(loss)
+
+	assert.InDeltaSlice(t, []mat.Float{0.22751944, 0.25144786, -0.78608638, 0.3071191}, x.Grad().Data(), 1.0e-6)
+}
+
 func TestZeroOneQuantization(t *testing.T) {
 	g := ag.NewGraph()
 	x := g.NewVariable(mat.NewVecDense([]mat.Float{0.1, 0.2, 1.0, 0.4, -0.8, 0.3}), true)

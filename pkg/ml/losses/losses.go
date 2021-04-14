@@ -34,9 +34,21 @@ func NLL(g *ag.Graph, x ag.Node, y ag.Node) ag.Node {
 }
 
 // CrossEntropy implements a cross-entropy loss function.
+//The loss combines Softmax and CE: the input is expected to contain raw, unnormalized scores for each class
+// (logits) and the gold vector is one-hot encoded.
 // c is the index of the gold class
 func CrossEntropy(g *ag.Graph, x ag.Node, c int) ag.Node {
 	return g.Add(g.Neg(g.AtVec(x, c)), g.Log(g.ReduceSum(g.Exp(x))))
+}
+
+// Focal loss implements a cross-entropy loss function that
+// (logits) and the gold vector is one-hot encoded.
+// c is the index of the gold class
+func FocalLoss(g *ag.Graph, x ag.Node, c int, gamma float32) ag.Node {
+	ce := CrossEntropy(g, x, c)
+	p := g.Exp(g.Neg(ce))
+	a := g.Pow(g.ReverseSub(g.NewScalar(1.0), p), gamma)
+	return g.Prod(a, ce)
 }
 
 // Perplexity computes the perplexity, implemented as exp over the cross-entropy.
