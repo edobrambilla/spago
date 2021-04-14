@@ -100,7 +100,7 @@ func (t *PradoTrainer) trainBatch(model *prado.Model, batch [][]string, labels [
 	for e := 0; e < len(batch); e++ {
 		y := model.Forward(batch[e])[0]
 		label := labels[e]
-		loss = g.Add(loss, losses.FocalLoss(g, y, label, 2.0))
+		loss = g.Add(loss, losses.FocalLoss(g, y, label, 3.0))
 	}
 	//loss = g.Div(loss, g.NewScalar(float32(t.BatchSize)))
 	g.Backward(loss)

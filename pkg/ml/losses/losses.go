@@ -47,7 +47,8 @@ func CrossEntropy(g *ag.Graph, x ag.Node, c int) ag.Node {
 func FocalLoss(g *ag.Graph, x ag.Node, c int, gamma float32) ag.Node {
 	ce := CrossEntropy(g, x, c)
 	p := g.Exp(g.Neg(ce))
-	a := g.Pow(g.ReverseSub(g.NewScalar(1.0), p), gamma)
+	sub := g.ReverseSub(p, g.NewScalar(1.0))
+	a := g.Pow(sub, gamma)
 	return g.Prod(a, ce)
 }
 
