@@ -243,7 +243,7 @@ func (t *BiRNNTrainer) learn(_ int, tokenizedExample []string, label int) float3
 	model := nn.Reify(c, t.model).(*BiRNNClassifierModel)
 	defer g.Clear()
 	y := model.Forward(tokenizedExample)[0]
-	loss := g.Div(losses.CrossEntropy(g, y, label), g.NewScalar(1.0))
+	loss := g.Div(losses.FocalLoss(g, y, label, 0.0), g.NewScalar(float32(t.BatchSize)))
 	//g.Forward()
 	g.Backward(loss)
 	return loss.ScalarValue()

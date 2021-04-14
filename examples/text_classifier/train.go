@@ -107,6 +107,7 @@ func newPradoModel() *prado.Model {
 	config := prado.Config{
 		EncodingActivation:    "ReLU",
 		ConvActivation:        "Identity",
+		OutputActivation:      "Identity",
 		ConvSize:              4,
 		InputSize:             512,
 		ProjectionSize:        256,
