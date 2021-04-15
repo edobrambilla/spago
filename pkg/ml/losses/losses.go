@@ -41,6 +41,16 @@ func CrossEntropy(g *ag.Graph, x ag.Node, c int) ag.Node {
 	return g.Add(g.Neg(g.AtVec(x, c)), g.Log(g.ReduceSum(g.Exp(x))))
 }
 
+// BalancedCrossEntropy implements a cross-entropy loss function.
+//The loss combines Softmax and CE: the input is expected to contain raw, unnormalized scores for each class
+// (logits) and the gold vector is one-hot encoded.
+// c is the index of the gold class
+// This function is scaled by a weighting factor a[class] ∈[0,1]
+func BalancedCrossEntropy(g *ag.Graph, x ag.Node, c int, a []float32) ag.Node {
+	ce := g.Add(g.Neg(g.AtVec(x, c)), g.Log(g.ReduceSum(g.Exp(x))))
+	return g.ProdScalar(ce, g.NewScalar(a[c]))
+}
+
 // Focal loss implements a cross-entropy loss function that
 // (logits) and the gold vector is one-hot encoded.
 // c is the index of the gold class
@@ -50,6 +60,19 @@ func FocalLoss(g *ag.Graph, x ag.Node, c int, gamma float32) ag.Node {
 	sub := g.ReverseSub(p, g.NewScalar(1.0))
 	a := g.Pow(sub, gamma)
 	return g.Prod(a, ce)
+}
+
+// Focal loss implements a cross-entropy loss function that
+// (logits) and the gold vector is one-hot encoded.
+// c is the index of the gold class
+// This function is scaled by a weighting factor a[class] ∈[0,1]
+func BalancedFocalLoss(g *ag.Graph, x ag.Node, c int, gamma float32, a []float32) ag.Node {
+	ce := CrossEntropy(g, x, c)
+	p := g.Exp(g.Neg(ce))
+	sub := g.ReverseSub(p, g.NewScalar(1.0))
+	b := g.Pow(sub, gamma)
+	fl := g.Prod(b, ce)
+	return g.ProdScalar(fl, g.NewScalar(a[c]))
 }
 
 // Perplexity computes the perplexity, implemented as exp over the cross-entropy.

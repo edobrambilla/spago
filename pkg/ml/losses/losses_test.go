@@ -61,6 +61,32 @@ func TestFocalLoss(t *testing.T) {
 	assert.InDeltaSlice(t, []mat.Float{0.22751944, 0.25144786, -0.78608638, 0.3071191}, x.Grad().Data(), 1.0e-6)
 }
 
+func TestBalancedCrossEntropyLoss(t *testing.T) {
+	g := ag.NewGraph()
+	x := g.NewVariable(mat.NewVecDense([]mat.Float{-500, 0, 0.693147, 1.94591}), true)
+	w := []float32{0.5, 0.5, 0.5, 0.9}
+	loss := BalancedCrossEntropy(g, x, 2, w)
+
+	assertEqualApprox(t, 0.804719, loss.Value().Scalar())
+
+	g.Backward(loss)
+
+	assert.InDeltaSlice(t, []mat.Float{0.0, 0.05, -0.4, 0.35}, x.Grad().Data(), 1.0e-6)
+}
+
+func TestBalancedFocalLoss(t *testing.T) {
+	g := ag.NewGraph()
+	x := g.NewVariable(mat.NewVecDense([]mat.Float{0.1, 0.2, 0.3, 0.4}), true)
+	w := []float32{0.5, 0.5, 0.5, 0.9}
+	loss := BalancedFocalLoss(g, x, 2, 2.0, w)
+
+	assertEqualApprox(t, 0.36641273, loss.Value().Scalar())
+
+	g.Backward(loss)
+
+	assert.InDeltaSlice(t, []mat.Float{0.11375972, 0.12572393, -0.39304319, 0.15355955}, x.Grad().Data(), 1.0e-6)
+}
+
 func TestZeroOneQuantization(t *testing.T) {
 	g := ag.NewGraph()
 	x := g.NewVariable(mat.NewVecDense([]mat.Float{0.1, 0.2, 1.0, 0.4, -0.8, 0.3}), true)
