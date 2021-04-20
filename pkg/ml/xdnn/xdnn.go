@@ -213,6 +213,17 @@ func similarity(vectorA *mat32.Dense, vectorB *mat32.Dense) float32 {
 	//return float32(math.Exp(float64(-1.0 * norm)))
 }
 
+// todo optimize
+func cosineSimilarity(vectorA *mat32.Dense, vectorB *mat32.Dense) float32 {
+	normA := Norm(vectorA)
+	normB := Norm(vectorB)
+	var dot float32
+	for i := 0; i < vectorA.Size(); i++ {
+		dot += (vectorB.AtVec(i)) * (vectorA.AtVec(i))
+	}
+	return dot / (normA * normB)
+}
+
 type prototypeScore struct {
 	index    int
 	maxScore float32
