@@ -29,3 +29,18 @@ func TestQuantiztion_IntegerGelu(t *testing.T) {
 	assert.Equal(t, gelu.q, 48)
 	assert.Equal(t, gelu.scaling, float32(-0.0044071344))
 }
+
+func TestQuantiztion_IntegerExp(t *testing.T) {
+	q := NewQuantization(12, 50)
+	a := q.Quantize(-0.55 - 1.2)
+	exp := q.IntegerExp(a)
+	assert.InDelta(t, float32(exp.q)*exp.scaling, float32(0.17566888), 1.0e-6)
+	q = NewQuantization(12, 50)
+	b := q.Quantize(1.2 - 1.2)
+	exp = q.IntegerExp(b)
+	assert.InDelta(t, float32(exp.q)*exp.scaling, float32(0.9999778), 1.0e-6)
+	q = NewQuantization(12, 50)
+	c := q.Quantize(-500 - 1.2)
+	exp = q.IntegerExp(c)
+	assert.InDelta(t, float32(exp.q)*exp.scaling, float32(9.313019e-10), 1.0e-6)
+}
