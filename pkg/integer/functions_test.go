@@ -45,6 +45,18 @@ func TestQuantiztion_IntegerExp(t *testing.T) {
 	assert.InDelta(t, float32(exp.q)*exp.scaling, float32(9.313019e-10), 1.0e-6)
 }
 
+func TestQuantiztion_IntegerSoftmax(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v := []int{-45, 98, -491}
+	softmax := q.IntSoftmax(v)
+	s := float32(softmax[0].q) * softmax[0].scaling
+	assert.InDelta(t, s, float32(0.1492918), 1.0e-6)
+	s = float32(softmax[1].q) * softmax[0].scaling
+	assert.InDelta(t, s, float32(0.84999186), 1.0e-6)
+	s = float32(softmax[2].q) * softmax[0].scaling
+	assert.InDelta(t, s, float32(0.00058734), 1.0e-6)
+}
+
 func TestQuantiztion_IntegerSquareRoot(t *testing.T) {
 	sqrt := IntegerSqrt(40)
 	assert.Equal(t, sqrt, 6)
