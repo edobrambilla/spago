@@ -105,10 +105,6 @@ func (q *Quantization) IntegerExp(input int) QuantizedInt {
 	qtmp := Quantization{q.b, math.MaxFloat32, q.scaling}
 	expInt := qtmp.integerPoly2(a, b, c, r)
 	t := expInt.q >> qp
-	//t := int(math.Floor(float64(expInt.q) * math.Pow(2.0, float64(cnst-qp))))
-	//qOut := clamp(t, 0)
-	//scalingOut := expInt.scaling / float32(math.Pow(2.0, float64(cnst)))
-	//return QuantizedInt{qOut, scalingOut}
 	return QuantizedInt{t, expInt.scaling}
 }
 
@@ -136,13 +132,6 @@ func (q *Quantization) IntSoftmax(input []int) []QuantizedInt {
 		exp[i].q = int(math.Floor(float64(div)))
 	}
 	return exp
-}
-
-func clamp(input, min int) int {
-	if input < min {
-		return min
-	}
-	return input
 }
 
 func bitCount(input int) int {
