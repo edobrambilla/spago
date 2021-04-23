@@ -116,3 +116,30 @@ func clamp(input, min int) int {
 	}
 	return input
 }
+
+func bitCount(input int) int {
+	if input == 0 {
+		return 0
+	}
+	return int(math.Log2(float64(input)) + 1)
+}
+
+func IntegerSqrt(input int) int {
+	if input == 0 {
+		return 0
+	}
+	if input < 0 {
+		panic("IntegerSqrt: input cannot be negative.")
+	}
+	b := float64(bitCount(input))
+	x := math.Pow(2.0, math.Ceil((b / 2)))
+	i := 0
+	for {
+		y := math.Floor((x + math.Floor(float64(input)/x)) / 2)
+		if y >= x {
+			return int(x)
+		}
+		x = y
+		i++
+	}
+}
