@@ -104,10 +104,38 @@ func (q *Quantization) IntegerExp(input int) QuantizedInt {
 	r := qint - qln*qp
 	qtmp := Quantization{q.b, math.MaxFloat32, q.scaling}
 	expInt := qtmp.integerPoly2(a, b, c, r)
-	t := int(math.Floor(float64(expInt.q) * math.Pow(2.0, float64(cnst-qp))))
-	qOut := clamp(t, 0)
-	scalingOut := expInt.scaling / float32(math.Pow(2.0, float64(cnst)))
-	return QuantizedInt{qOut, scalingOut}
+	t := expInt.q >> qp
+	//t := int(math.Floor(float64(expInt.q) * math.Pow(2.0, float64(cnst-qp))))
+	//qOut := clamp(t, 0)
+	//scalingOut := expInt.scaling / float32(math.Pow(2.0, float64(cnst)))
+	//return QuantizedInt{qOut, scalingOut}
+	return QuantizedInt{t, expInt.scaling}
+}
+
+func max(input []int) int {
+	var m int
+	for i, e := range input {
+		if i == 0 || e > m {
+			m = e
+		}
+	}
+	return m
+}
+
+func (q *Quantization) IntSoftmax(input []int) []QuantizedInt {
+	max := max(input)
+	sum := 0
+	exp := make([]QuantizedInt, 0)
+	for i := 0; i < len(input); i++ {
+		exp = append(exp, q.IntegerExp(input[i]-max))
+		sum += exp[i].q
+	}
+	factor := exp[0].scaling
+	for i := 0; i < len(input); i++ {
+		div := (float32(exp[i].q) / float32(sum)) / factor
+		exp[i].q = int(math.Floor(float64(div)))
+	}
+	return exp
 }
 
 func clamp(input, min int) int {
