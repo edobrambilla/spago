@@ -58,14 +58,14 @@ func TestQuantiztion_IntegerSoftmax(t *testing.T) {
 }
 
 func TestQuantiztion_IntegerSquareRoot(t *testing.T) {
-	sqrt := IntegerSqrt(40)
+	sqrt := IntSqrt(40)
 	assert.Equal(t, sqrt, 6)
-	sqrt = IntegerSqrt(0)
+	sqrt = IntSqrt(0)
 	assert.Equal(t, sqrt, 0)
-	sqrt = IntegerSqrt(9)
+	sqrt = IntSqrt(9)
 	assert.Equal(t, sqrt, 3)
-	sqrt = IntegerSqrt(100)
+	sqrt = IntSqrt(100)
 	assert.Equal(t, sqrt, 10)
-	sqrt = IntegerSqrt(90)
+	sqrt = IntSqrt(90)
 	assert.Equal(t, sqrt, 9)
 }
