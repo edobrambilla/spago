@@ -69,3 +69,15 @@ func TestQuantiztion_IntegerSquareRoot(t *testing.T) {
 	sqrt = IntSqrt(90)
 	assert.Equal(t, sqrt, 9)
 }
+
+func TestQuantization_IntegerLayerNorm(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v := []int{-45, 98, -491}
+	norm := q.IntNormalization(v)
+	s := float32(norm[0].q) * norm[0].scaling
+	assert.InDelta(t, s, float32(0.40293040), 1.0e-6)
+	s = float32(norm[1].q) * norm[0].scaling
+	assert.InDelta(t, s, float32(0.97680097), 1.0e-6)
+	s = float32(norm[2].q) * norm[0].scaling
+	assert.InDelta(t, s, float32(-1.3797313), 1.0e-6)
+}

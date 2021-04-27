@@ -160,3 +160,25 @@ func IntSqrt(input int) int {
 		i++
 	}
 }
+
+func (q *Quantization) IntNormalization(input []int) []QuantizedInt {
+	normalizedLayer := make([]QuantizedInt, 0)
+	avg := 0
+	for i := 0; i < len(input); i++ {
+		avg += input[i]
+	}
+	avg = int(math.Round(float64(avg) / float64(len(input))))
+	stdDev := 0
+	for i := 0; i < len(input); i++ {
+		stdDev += (input[i] - avg) * (input[i] - avg)
+	}
+	stdDev = int(math.Round(float64(stdDev) / float64(len(input))))
+	stdDev = IntSqrt(stdDev)
+	for i := 0; i < len(input); i++ {
+		normalizedLayer = append(normalizedLayer, QuantizedInt{
+			q:       int(math.Round(float64(input[i]-avg) / (float64(stdDev) * float64(q.scaling)))),
+			scaling: q.scaling,
+		})
+	}
+	return normalizedLayer
+}
