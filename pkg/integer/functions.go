@@ -182,3 +182,52 @@ func (q *Quantization) IntNormalization(input []int) []QuantizedInt {
 	}
 	return normalizedLayer
 }
+
+func IntMatrix(rows, cols int) [][]int {
+	m := make([][]int, rows)
+	for i := 0; i < rows; i++ {
+		m[i] = make([]int, cols)
+	}
+	return m
+}
+
+func Mul(a, b [][]int) [][]int {
+	if len(a[0]) != len(b) {
+		panic("mat32: matrices with not compatible size")
+	}
+	m := IntMatrix(len(a), len(b[0]))
+	for i := 0; i < len(a); i++ {
+		for j := 0; j < len(b[0]); j++ {
+			for k := 0; k < len(b); k++ {
+				m[i][j] += a[i][k] * b[k][j]
+			}
+		}
+	}
+	return m
+}
+
+func Prod(a, b [][]int) [][]int {
+	if len(a[0]) != len(b[0]) && (len(a) != len(b)) {
+		panic("mat32: matrices with not compatible size")
+	}
+	m := IntMatrix(len(a), len(b[0]))
+	for i := 0; i < len(a); i++ {
+		for j := 0; j < len(b); j++ {
+			m[i][j] = a[i][j] * b[i][j]
+		}
+	}
+	return m
+}
+
+func Add(a, b [][]int) [][]int {
+	if len(a[0]) != len(b[0]) && (len(a) != len(b)) {
+		panic("mat32: matrices with not compatible size")
+	}
+	m := IntMatrix(len(a), len(a[0]))
+	for i := 0; i < len(a); i++ {
+		for j := 0; j < len(b); j++ {
+			m[i][j] = a[i][j] + b[i][j]
+		}
+	}
+	return m
+}
