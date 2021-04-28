@@ -183,7 +183,22 @@ func (q *Quantization) IntNormalization(input []int) []QuantizedInt {
 	return normalizedLayer
 }
 
-func IntMatrix(rows, cols int) [][]int {
+func IntMatrix(rows, cols int, data []int) [][]int {
+	m := make([][]int, rows)
+	for i := 0; i < rows; i++ {
+		m[i] = make([]int, cols)
+	}
+	k := 0
+	for i := 0; i < rows; i++ {
+		for j := 0; j < cols; j++ {
+			m[i][j] = data[k]
+			k++
+		}
+	}
+	return m
+}
+
+func IntZeroMatrix(rows, cols int) [][]int {
 	m := make([][]int, rows)
 	for i := 0; i < rows; i++ {
 		m[i] = make([]int, cols)
@@ -195,7 +210,7 @@ func Mul(a, b [][]int) [][]int {
 	if len(a[0]) != len(b) {
 		panic("mat32: matrices with not compatible size")
 	}
-	m := IntMatrix(len(a), len(b[0]))
+	m := IntZeroMatrix(len(a), len(b[0]))
 	for i := 0; i < len(a); i++ {
 		for j := 0; j < len(b[0]); j++ {
 			for k := 0; k < len(b); k++ {
@@ -210,9 +225,9 @@ func Prod(a, b [][]int) [][]int {
 	if len(a[0]) != len(b[0]) && (len(a) != len(b)) {
 		panic("mat32: matrices with not compatible size")
 	}
-	m := IntMatrix(len(a), len(b[0]))
+	m := IntZeroMatrix(len(a), len(b[0]))
 	for i := 0; i < len(a); i++ {
-		for j := 0; j < len(b); j++ {
+		for j := 0; j < len(a[0]); j++ {
 			m[i][j] = a[i][j] * b[i][j]
 		}
 	}
@@ -223,9 +238,9 @@ func Add(a, b [][]int) [][]int {
 	if len(a[0]) != len(b[0]) && (len(a) != len(b)) {
 		panic("mat32: matrices with not compatible size")
 	}
-	m := IntMatrix(len(a), len(a[0]))
+	m := IntZeroMatrix(len(a), len(a[0]))
 	for i := 0; i < len(a); i++ {
-		for j := 0; j < len(b); j++ {
+		for j := 0; j < len(a[0]); j++ {
 			m[i][j] = a[i][j] + b[i][j]
 		}
 	}
