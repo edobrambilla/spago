@@ -198,6 +198,34 @@ func IntMatrix(rows, cols int, data []int) [][]int {
 	return m
 }
 
+func (q *Quantization) IntQuantizeMatrix(rows, cols int, data []float32) [][]int {
+	m := make([][]int, rows)
+	for i := 0; i < rows; i++ {
+		m[i] = make([]int, cols)
+	}
+	k := 0
+	for i := 0; i < rows; i++ {
+		for j := 0; j < cols; j++ {
+			m[i][j] = q.Quantize(data[k])
+			k++
+		}
+	}
+	return m
+}
+
+func (q *Quantization) DequantizeMatrix(input [][]int) [][]float32 {
+	m := make([][]float32, len(input))
+	for i := 0; i < len(input); i++ {
+		m[i] = make([]float32, len(input[0]))
+	}
+	for i := 0; i < len(input); i++ {
+		for j := 0; j < len(input[0]); j++ {
+			m[i][j] = q.Dequantize(input[i][j])
+		}
+	}
+	return m
+}
+
 func IntZeroMatrix(rows, cols int) [][]int {
 	m := make([][]int, rows)
 	for i := 0; i < rows; i++ {
@@ -229,6 +257,16 @@ func Prod(a, b [][]int) [][]int {
 	for i := 0; i < len(a); i++ {
 		for j := 0; j < len(a[0]); j++ {
 			m[i][j] = a[i][j] * b[i][j]
+		}
+	}
+	return m
+}
+
+func ProdScalar(a [][]int, scalar int) [][]int {
+	m := IntZeroMatrix(len(a), len(a[0]))
+	for i := 0; i < len(a); i++ {
+		for j := 0; j < len(a[0]); j++ {
+			m[i][j] = a[i][j] * scalar
 		}
 	}
 	return m
