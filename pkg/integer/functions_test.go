@@ -83,49 +83,60 @@ func TestQuantization_IntegerLayerNorm(t *testing.T) {
 }
 
 func TestQuantization_LinearMul(t *testing.T) {
+	q := NewQuantization(12, 50)
 	v1 := []int{2, -2, 4, 3, 4, -3}
 	v2 := []int{2, 4, 8, 7, -1, 0}
-	a := IntMatrix(2, 3, v1)
-	b := IntMatrix(3, 2, v2)
+	a := q.GetQuantizedIntMatrix(2, 3, v1)
+	b := q.GetQuantizedIntMatrix(3, 2, v2)
 	c := Mul(a, b)
-	assert.Equal(t, c[0], []int{-16, -6})
-	assert.Equal(t, c[1], []int{41, 40})
+	assert.Equal(t, c.matrix[0], []int{-16, -6})
+	assert.Equal(t, c.matrix[1], []int{41, 40})
+	assert.InDelta(t, c.scaling, float32(0.00014908), 1.0e-6)
 }
 
 func TestQuantization_LinearAdd(t *testing.T) {
+	q := NewQuantization(12, 50)
 	v1 := []int{2, -2, 4, 3, 4, -3}
 	v2 := []int{2, 4, 8, 7, -1, 0}
-	a := IntMatrix(2, 3, v1)
-	b := IntMatrix(2, 3, v2)
+	a := q.GetQuantizedIntMatrix(2, 3, v1)
+	b := q.GetQuantizedIntMatrix(2, 3, v2)
 	c := Add(a, b)
-	assert.Equal(t, c[0], []int{4, 2, 12})
-	assert.Equal(t, c[1], []int{10, 3, -3})
+	assert.Equal(t, c.matrix[0], []int{4, 2, 12})
+	assert.Equal(t, c.matrix[1], []int{10, 3, -3})
+	assert.InDelta(t, c.scaling, float32(0.012210012), 1.0e-6)
 }
 
 func TestQuantization_LinearProd(t *testing.T) {
+	q := NewQuantization(12, 50)
 	v1 := []int{2, -2, 4, 3, 4, -3}
 	v2 := []int{2, 4, 8, 7, -1, 0}
-	a := IntMatrix(2, 3, v1)
-	b := IntMatrix(2, 3, v2)
+	a := q.GetQuantizedIntMatrix(2, 3, v1)
+	b := q.GetQuantizedIntMatrix(2, 3, v2)
 	c := Prod(a, b)
-	assert.Equal(t, c[0], []int{4, -8, 32})
-	assert.Equal(t, c[1], []int{21, -4, 0})
+	assert.Equal(t, c.matrix[0], []int{4, -8, 32})
+	assert.Equal(t, c.matrix[1], []int{21, -4, 0})
+	assert.InDelta(t, c.scaling, float32(0.00014908), 1.0e-6)
 }
 
 func TestQuantization_LinearProdScalar(t *testing.T) {
+	q := NewQuantization(12, 50)
 	v1 := []int{2, -2, 4, 3, 4, -3}
-	s := 2
-	a := IntMatrix(2, 3, v1)
+	s := QuantizedInt{
+		q:       2,
+		scaling: q.scaling,
+	}
+	a := q.GetQuantizedIntMatrix(2, 3, v1)
 	c := ProdScalar(a, s)
-	assert.Equal(t, c[0], []int{4, -4, 8})
-	assert.Equal(t, c[1], []int{6, 8, -6})
+	assert.Equal(t, c.matrix[0], []int{4, -4, 8})
+	assert.Equal(t, c.matrix[1], []int{6, 8, -6})
+	assert.InDelta(t, c.scaling, float32(0.00014908), 1.0e-6)
 }
 
 func TestQuantization_LinearDequantize(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v1 := []int{2, -2, 4, 3, 4, -3}
-	a := IntMatrix(2, 3, v1)
-	f := q.DequantizeMatrix(a)
+	a := q.GetQuantizedIntMatrix(2, 3, v1)
+	f := q.DequantizeMatrix(a.matrix)
 	assert.InDeltaSlice(t, f[0], []float32{0.024420024, -0.024420024, 0.048840048}, 1.0e-6)
 	assert.InDeltaSlice(t, f[1], []float32{0.036630036, 0.048840048, -0.036630036}, 1.0e-6)
 }

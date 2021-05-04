@@ -20,8 +20,18 @@ type QuantizedInt struct {
 	scaling float32 // scaling factor. x (float) = q * scaling
 }
 
+type QuantizedIntMatrix struct {
+	matrix  [][]int // quantized matrix
+	scaling float32 // scaling factor. x (float) = q * scaling
+}
+
 func NewQuantization(b int, clip float32) Quantization {
 	scaling := clip / (mat.Pow(2.0, float32(b)) - 1)
+	return Quantization{b, clip, scaling}
+}
+
+func NewQuantizationScaling(b int, scaling float32) Quantization {
+	clip := scaling * (mat.Pow(2.0, float32(b)) - 1)
 	return Quantization{b, clip, scaling}
 }
 
@@ -183,7 +193,7 @@ func (q *Quantization) IntNormalization(input []int) []QuantizedInt {
 	return normalizedLayer
 }
 
-func IntMatrix(rows, cols int, data []int) [][]int {
+func (q *Quantization) GetQuantizedIntMatrix(rows, cols int, data []int) QuantizedIntMatrix {
 	m := make([][]int, rows)
 	for i := 0; i < rows; i++ {
 		m[i] = make([]int, cols)
@@ -195,10 +205,10 @@ func IntMatrix(rows, cols int, data []int) [][]int {
 			k++
 		}
 	}
-	return m
+	return QuantizedIntMatrix{m, q.scaling}
 }
 
-func (q *Quantization) IntQuantizeMatrix(rows, cols int, data []float32) [][]int {
+func (q *Quantization) QuantizeFloatMatrix(rows, cols int, data []float32) QuantizedIntMatrix {
 	m := make([][]int, rows)
 	for i := 0; i < rows; i++ {
 		m[i] = make([]int, cols)
@@ -210,7 +220,7 @@ func (q *Quantization) IntQuantizeMatrix(rows, cols int, data []float32) [][]int
 			k++
 		}
 	}
-	return m
+	return QuantizedIntMatrix{m, q.scaling}
 }
 
 func (q *Quantization) DequantizeMatrix(input [][]int) [][]float32 {
@@ -226,7 +236,7 @@ func (q *Quantization) DequantizeMatrix(input [][]int) [][]float32 {
 	return m
 }
 
-func IntZeroMatrix(rows, cols int) [][]int {
+func intZeroMatrix(rows, cols int) [][]int {
 	m := make([][]int, rows)
 	for i := 0; i < rows; i++ {
 		m[i] = make([]int, cols)
@@ -234,53 +244,56 @@ func IntZeroMatrix(rows, cols int) [][]int {
 	return m
 }
 
-func Mul(a, b [][]int) [][]int {
-	if len(a[0]) != len(b) {
+func Mul(a, b QuantizedIntMatrix) QuantizedIntMatrix {
+	if len(a.matrix[0]) != len(b.matrix) {
 		panic("mat32: matrices with not compatible size")
 	}
-	m := IntZeroMatrix(len(a), len(b[0]))
-	for i := 0; i < len(a); i++ {
-		for j := 0; j < len(b[0]); j++ {
-			for k := 0; k < len(b); k++ {
-				m[i][j] += a[i][k] * b[k][j]
+	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
+	for i := 0; i < len(a.matrix); i++ {
+		for j := 0; j < len(b.matrix[0]); j++ {
+			for k := 0; k < len(b.matrix); k++ {
+				m[i][j] += a.matrix[i][k] * b.matrix[k][j]
 			}
 		}
 	}
-	return m
+	return QuantizedIntMatrix{m, a.scaling * b.scaling}
 }
 
-func Prod(a, b [][]int) [][]int {
-	if len(a[0]) != len(b[0]) && (len(a) != len(b)) {
+func Prod(a, b QuantizedIntMatrix) QuantizedIntMatrix {
+	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
 		panic("mat32: matrices with not compatible size")
 	}
-	m := IntZeroMatrix(len(a), len(b[0]))
-	for i := 0; i < len(a); i++ {
-		for j := 0; j < len(a[0]); j++ {
-			m[i][j] = a[i][j] * b[i][j]
+	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
+	for i := 0; i < len(a.matrix); i++ {
+		for j := 0; j < len(a.matrix[0]); j++ {
+			m[i][j] = a.matrix[i][j] * b.matrix[i][j]
 		}
 	}
-	return m
+	return QuantizedIntMatrix{m, a.scaling * b.scaling}
 }
 
-func ProdScalar(a [][]int, scalar int) [][]int {
-	m := IntZeroMatrix(len(a), len(a[0]))
-	for i := 0; i < len(a); i++ {
-		for j := 0; j < len(a[0]); j++ {
-			m[i][j] = a[i][j] * scalar
+func ProdScalar(a QuantizedIntMatrix, scalar QuantizedInt) QuantizedIntMatrix {
+	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
+	for i := 0; i < len(a.matrix); i++ {
+		for j := 0; j < len(a.matrix[0]); j++ {
+			m[i][j] = a.matrix[i][j] * scalar.q
 		}
 	}
-	return m
+	return QuantizedIntMatrix{m, a.scaling * scalar.scaling}
 }
 
-func Add(a, b [][]int) [][]int {
-	if len(a[0]) != len(b[0]) && (len(a) != len(b)) {
+func Add(a, b QuantizedIntMatrix) QuantizedIntMatrix {
+	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
 		panic("mat32: matrices with not compatible size")
 	}
-	m := IntZeroMatrix(len(a), len(a[0]))
-	for i := 0; i < len(a); i++ {
-		for j := 0; j < len(a[0]); j++ {
-			m[i][j] = a[i][j] + b[i][j]
+	if a.scaling != b.scaling {
+		panic("Add: warning, different scaling factor")
+	}
+	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
+	for i := 0; i < len(a.matrix); i++ {
+		for j := 0; j < len(a.matrix[0]); j++ {
+			m[i][j] = a.matrix[i][j] + b.matrix[i][j]
 		}
 	}
-	return m
+	return QuantizedIntMatrix{m, a.scaling}
 }
