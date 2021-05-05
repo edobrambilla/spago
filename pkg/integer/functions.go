@@ -39,14 +39,15 @@ func NewQuantizationClipScaling(b int, clip float32, scaling float32) Quantizati
 	return Quantization{b, clip, scaling}
 }
 
-func (q *Quantization) Quantize(x float32) int {
+func (q *Quantization) Quantize(x float32) QuantizedInt {
 	if x > q.clip {
 		x = q.clip
 	}
 	if x < -q.clip {
 		x = -q.clip
 	}
-	return int(math.Round(float64(x / q.scaling)))
+
+	return QuantizedInt{int(math.Round(float64(x / q.scaling))), q.scaling}
 }
 
 func (q *Quantization) Dequantize(x int) float32 {
@@ -220,7 +221,7 @@ func (q *Quantization) QuantizeFloatMatrix(rows, cols int, data []float32) Quant
 	k := 0
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			m[i][j] = q.Quantize(data[k])
+			m[i][j] = q.Quantize(data[k]).q
 			k++
 		}
 	}
