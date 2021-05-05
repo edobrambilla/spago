@@ -223,14 +223,15 @@ func (q *Quantization) QuantizeFloatMatrix(rows, cols int, data []float32) Quant
 	return QuantizedIntMatrix{m, q.scaling}
 }
 
-func (q *Quantization) DequantizeMatrix(input [][]int) [][]float32 {
-	m := make([][]float32, len(input))
-	for i := 0; i < len(input); i++ {
-		m[i] = make([]float32, len(input[0]))
+func (q *Quantization) DequantizeMatrix(input QuantizedIntMatrix) [][]float32 {
+	qOut := NewQuantizationScaling(q.b, input.scaling)
+	m := make([][]float32, len(input.matrix))
+	for i := 0; i < len(input.matrix); i++ {
+		m[i] = make([]float32, len(input.matrix[0]))
 	}
-	for i := 0; i < len(input); i++ {
-		for j := 0; j < len(input[0]); j++ {
-			m[i][j] = q.Dequantize(input[i][j])
+	for i := 0; i < len(input.matrix); i++ {
+		for j := 0; j < len(input.matrix[0]); j++ {
+			m[i][j] = qOut.Dequantize(input.matrix[i][j])
 		}
 	}
 	return m

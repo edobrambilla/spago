@@ -136,7 +136,7 @@ func TestQuantization_LinearDequantize(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v1 := []int{2, -2, 4, 3, 4, -3}
 	a := q.GetQuantizedIntMatrix(2, 3, v1)
-	f := q.DequantizeMatrix(a.matrix)
+	f := q.DequantizeMatrix(a)
 	assert.InDeltaSlice(t, f[0], []float32{0.024420024, -0.024420024, 0.048840048}, 1.0e-6)
 	assert.InDeltaSlice(t, f[1], []float32{0.036630036, 0.048840048, -0.036630036}, 1.0e-6)
 }
