@@ -35,6 +35,10 @@ func NewQuantizationScaling(b int, scaling float32) Quantization {
 	return Quantization{b, clip, scaling}
 }
 
+func NewQuantizationClipScaling(b int, clip float32, scaling float32) Quantization {
+	return Quantization{b, clip, scaling}
+}
+
 func (q *Quantization) Quantize(x float32) int {
 	if x > q.clip {
 		x = q.clip
