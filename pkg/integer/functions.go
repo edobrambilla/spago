@@ -228,7 +228,7 @@ func (q *Quantization) QuantizeFloatMatrix(rows, cols int, data []float32) Quant
 }
 
 func (q *Quantization) DequantizeMatrix(input QuantizedIntMatrix) [][]float32 {
-	qOut := NewQuantizationScaling(q.b, input.scaling)
+	qOut := NewQuantizationClipScaling(q.b, q.clip, input.scaling)
 	m := make([][]float32, len(input.matrix))
 	for i := 0; i < len(input.matrix); i++ {
 		m[i] = make([]float32, len(input.matrix[0]))
