@@ -82,6 +82,17 @@ func TestQuantization_IntegerLayerNorm(t *testing.T) {
 	assert.InDelta(t, s, float32(-1.3797313), 1.0e-6)
 }
 
+func TestQuantization_Transpose(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int{2, -2, 4, 3, 4, -3}
+	a := q.GetQuantizedIntMatrix(2, 3, v1)
+	c := Transpose(a)
+	assert.Equal(t, c.matrix[0], []int{2, 3})
+	assert.Equal(t, c.matrix[1], []int{-2, 4})
+	assert.Equal(t, c.matrix[2], []int{4, -3})
+	assert.InDelta(t, c.scaling, float32(0.012210012), 1.0e-6)
+}
+
 func TestQuantization_LinearMul(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v1 := []int{2, -2, 4, 3, 4, -3}

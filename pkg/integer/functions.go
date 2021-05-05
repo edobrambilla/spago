@@ -249,6 +249,17 @@ func intZeroMatrix(rows, cols int) [][]int {
 	return m
 }
 
+func Transpose(a QuantizedIntMatrix) QuantizedIntMatrix {
+	m := intZeroMatrix(len(a.matrix[0]), len(a.matrix))
+	for i := 0; i < len(a.matrix); i++ {
+		for j := 0; j < len(a.matrix[0]); j++ {
+			m[j][i] += a.matrix[i][j]
+
+		}
+	}
+	return QuantizedIntMatrix{m, a.scaling}
+}
+
 func Mul(a, b QuantizedIntMatrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix) {
 		panic("mat32: matrices with not compatible size")
