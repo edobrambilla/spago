@@ -198,7 +198,7 @@ func (q *Quantization) IntNormalization(input []int) []QuantizedInt {
 	return normalizedLayer
 }
 
-func (q *Quantization) GetQuantizedIntMatrix(rows, cols int, data []int) QuantizedIntMatrix {
+func (q *Quantization) GetQuantizedMatrixFromInt(rows, cols int, data []int) QuantizedIntMatrix {
 	m := make([][]int, rows)
 	for i := 0; i < rows; i++ {
 		m[i] = make([]int, cols)
@@ -207,6 +207,21 @@ func (q *Quantization) GetQuantizedIntMatrix(rows, cols int, data []int) Quantiz
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
 			m[i][j] = data[k]
+			k++
+		}
+	}
+	return QuantizedIntMatrix{m, q.scaling}
+}
+
+func (q *Quantization) GetQuantizedMatrix(rows, cols int, data []QuantizedInt) QuantizedIntMatrix {
+	m := make([][]int, rows)
+	for i := 0; i < rows; i++ {
+		m[i] = make([]int, cols)
+	}
+	k := 0
+	for i := 0; i < rows; i++ {
+		for j := 0; j < cols; j++ {
+			m[i][j] = data[k].q
 			k++
 		}
 	}
