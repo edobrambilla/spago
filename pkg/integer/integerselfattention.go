@@ -35,10 +35,10 @@ type Output struct {
 }
 
 // New returns a new model with parameters initialized to zeros.
-func NewFrom(m *selfattention.Model) *Model {
-	qq := NewQuantization(12, 50)
-	qk := NewQuantization(12, 50)
-	qv := NewQuantization(12, 50)
+func NewFrom(m *selfattention.Model, startingB int) *Model {
+	qq := NewQuantization(startingB, 50)
+	qk := NewQuantization(startingB, 50)
+	qv := NewQuantization(startingB, 50)
 	return &Model{
 		Query:             NewLinearIntModel(m.Query, qq),
 		Key:               NewLinearIntModel(m.Key, qk),
@@ -58,13 +58,15 @@ func (m *Model) Forward(input QuantizedIntMatrix) Output {
 	qkv := m.GetQKV(input)
 	tQueries := Transpose(qkv.Queries)
 	scores := Mul(tQueries, qkv.Keys)
-	qkquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.scaling, scores.scaling)
+	qkquantization := NewQuantizationScaling(m.QueryQuantization.b, scores.scaling)
 	scaledScores := ProdScalar(scores, qkquantization.Quantize(m.ScaleFactor))
 	scoresquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.scaling, scaledScores.scaling)
 	for i, attscores := range scaledScores.matrix {
 		out.scores[i] = scoresquantization.IntSoftmax(attscores)
-		scoresm := scoresquantization.GetQuantizedMatrix(1, len(out.scores[i]), out.scores[i])
-		out.context[i] = Mul(scoresm, qkv.Values)
+		softmaxquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.scaling,
+			out.scores[i][0].scaling)
+		scoresm := softmaxquantization.GetQuantizedMatrix(len(out.scores[i]), 1, out.scores[i])
+		out.context[i] = Mul(qkv.Values, scoresm)
 	}
 	return out
 }

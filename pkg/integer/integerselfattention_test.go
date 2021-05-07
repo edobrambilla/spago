@@ -31,16 +31,17 @@ func Test_LinearForward(t *testing.T) {
 }
 
 func Test_LinearSelfAttention(t *testing.T) {
-	q := NewQuantization(12, 50)
+	b := 8
+	q := NewQuantization(b, 50)
 	g := ag.NewGraph()
 	xs := make([]ag.Node, 3)
-	model := NewFrom(newTestModelSelfAttention())
+	model := NewFrom(newTestModelSelfAttention(), b)
 	xs[0] = g.NewVariable(mat.NewVecDense([]mat.Float{-0.8, -0.9, -0.9, 1.0}), false)
 	xs[1] = g.NewVariable(mat.NewVecDense([]mat.Float{0.8, -0.3, 0.5, 0.3}), false)
 	xs[2] = g.NewVariable(mat.NewVecDense([]mat.Float{-0.2, 0.7, 0.2, 0.4}), false)
 	stackedIn := Stack(g, q, xs)
 	output := model.Forward(stackedIn)
-	print(output.context[0].matrix)
+	print(output.context[0].matrix) // todo check results using int8/int32
 }
 
 func newTestModel() *linear.Model {
