@@ -151,3 +151,66 @@ func TestQuantization_LinearDequantize(t *testing.T) {
 	assert.InDeltaSlice(t, f[0], []float32{0.024420024, -0.024420024, 0.048840048}, 1.0e-6)
 	assert.InDeltaSlice(t, f[1], []float32{0.036630036, 0.048840048, -0.036630036}, 1.0e-6)
 }
+
+//int8
+
+func TestQuantization_LinearMulInt8(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	v2 := []int8{2, 4, 8, 7, -1, 0}
+	a := q.GetQuantizedMatrixFromInt8(2, 3, v1)
+	b := q.GetQuantizedMatrixFromInt8(3, 2, v2)
+	c := MulInt8(a, b)
+	assert.Equal(t, c.matrix[0], []int32{-16, -6})
+	assert.Equal(t, c.matrix[1], []int32{41, 40})
+	assert.InDelta(t, c.scaling, float32(0.00014908), 1.0e-6)
+}
+
+func TestQuantization_LinearAddInt8(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	v2 := []int8{2, 4, 8, 7, -1, 0}
+	a := q.GetQuantizedMatrixFromInt8(2, 3, v1)
+	b := q.GetQuantizedMatrixFromInt8(2, 3, v2)
+	c := AddInt8(a, b)
+	assert.Equal(t, c.matrix[0], []int32{4, 2, 12})
+	assert.Equal(t, c.matrix[1], []int32{10, 3, -3})
+	assert.InDelta(t, c.scaling, float32(0.012210012), 1.0e-6)
+}
+
+func TestQuantization_LinearProdInt8(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	v2 := []int8{2, 4, 8, 7, -1, 0}
+	a := q.GetQuantizedMatrixFromInt8(2, 3, v1)
+	b := q.GetQuantizedMatrixFromInt8(2, 3, v2)
+	c := ProdInt8(a, b)
+	assert.Equal(t, c.matrix[0], []int32{4, -8, 32})
+	assert.Equal(t, c.matrix[1], []int32{21, -4, 0})
+	assert.InDelta(t, c.scaling, float32(0.00014908), 1.0e-6)
+}
+
+func TestQuantization_LinearProdScalarInt8(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	s := QuantizedInt8{
+		q:       2,
+		scaling: q.scaling,
+	}
+	a := q.GetQuantizedMatrixFromInt8(2, 3, v1)
+	c := ProdScalarInt8(a, s)
+	assert.Equal(t, c.matrix[0], []int32{4, -4, 8})
+	assert.Equal(t, c.matrix[1], []int32{6, 8, -6})
+	assert.InDelta(t, c.scaling, float32(0.00014908), 1.0e-6)
+}
+
+func TestQuantization_Requantize(t *testing.T) {
+	q := NewQuantization(32, 50)
+	q8 := NewQuantization(8, 50)
+	a := q.Quantize(0.1)
+	qi := a.q
+	assert.Equal(t, qi, int32(8589935))
+	x := q.Requantize(qi, &q8)
+	assert.Equal(t, x.q, int8(1))
+	assert.InDelta(t, x.scaling, 0.19607843, 1.0e-6)
+}
