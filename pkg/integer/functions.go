@@ -433,6 +433,17 @@ func int8ZeroMatrix(rows, cols int) [][]int8 {
 	return m
 }
 
+func TransposeInt8(a QuantizedInt8Matrix) QuantizedInt8Matrix {
+	m := int8ZeroMatrix(len(a.matrix[0]), len(a.matrix))
+	for i := 0; i < len(a.matrix); i++ {
+		for j := 0; j < len(a.matrix[0]); j++ {
+			m[j][i] += a.matrix[i][j]
+
+		}
+	}
+	return QuantizedInt8Matrix{m, a.scaling}
+}
+
 func MulInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix) {
 		panic("mat32: matrices with not compatible size")
