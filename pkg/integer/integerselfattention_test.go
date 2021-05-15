@@ -6,7 +6,6 @@ package integer
 
 import (
 	mat "github.com/nlpodyssey/spago/pkg/mat32"
-	"github.com/nlpodyssey/spago/pkg/ml/ag"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/attention/selfattention"
 	"github.com/nlpodyssey/spago/pkg/ml/nn/linear"
 	"github.com/stretchr/testify/assert"
@@ -14,33 +13,33 @@ import (
 )
 
 func Test_LinearForward(t *testing.T) {
-	q := NewQuantization(12, 50)
-	g := ag.NewGraph()
+	q := NewQuantization(8, 50)
 	model := newTestModel()
-	intModel := NewLinearIntModel(model, NewQuantization(12, 50))
-	xs := make([]ag.Node, 3)
-	xs[0] = g.NewVariable(mat.NewVecDense([]mat.Float{-0.8, -0.9, -0.9}), false)
-	xs[1] = g.NewVariable(mat.NewVecDense([]mat.Float{0.8, -0.3, 0.5}), false)
-	xs[2] = g.NewVariable(mat.NewVecDense([]mat.Float{-0.2, 0.7, 0.2}), false)
-	stackedIn := Stack(g, q, xs)
-	c := intModel.Forward(stackedIn)
-	assert.Equal(t, c.matrix[0], []int{1235, 1458, 3764})
-	assert.Equal(t, c.matrix[1], []int{1458, -6012, 3505})
-	assert.Equal(t, c.matrix[2], []int{-1874, 2503, -4990})
-	assert.Equal(t, c.matrix[3], []int{-2464, -4048, 1651})
+	intModel := NewLinearIntModel(model, NewQuantization(8, 50))
+	x1 := []float32{-0.8, -0.9, -0.9}
+	x2 := []float32{0.8, -0.3, 0.5}
+	x3 := []float32{-0.2, 0.7, 0.2}
+	xs := append(x1, x2...)
+	xs = append(xs, x3...)
+	c := intModel.Forward(q.QuantizeFloatMatrixInt8(3, 3, xs))
+	assert.Equal(t, c.matrix[0], []int32{14, -27, 0})
+	assert.Equal(t, c.matrix[1], []int32{30, -1, 25})
+	assert.Equal(t, c.matrix[2], []int32{-32, 11, -21})
+	assert.Equal(t, c.matrix[3], []int32{16, 23, 24})
 }
 
 func Test_LinearSelfAttention(t *testing.T) {
 	b := 8
 	q := NewQuantization(b, 50)
-	g := ag.NewGraph()
-	xs := make([]ag.Node, 3)
 	model := NewFrom(newTestModelSelfAttention(), b)
-	xs[0] = g.NewVariable(mat.NewVecDense([]mat.Float{-0.8, -0.9, -0.9, 1.0}), false)
-	xs[1] = g.NewVariable(mat.NewVecDense([]mat.Float{0.8, -0.3, 0.5, 0.3}), false)
-	xs[2] = g.NewVariable(mat.NewVecDense([]mat.Float{-0.2, 0.7, 0.2, 0.4}), false)
-	stackedIn := Stack(g, q, xs)
-	output := model.Forward(stackedIn)
+	x1 := []float32{-0.8, -0.9, -0.9, 1.0}
+	x2 := []float32{0.8, -0.3, 0.5, 0.3}
+	x3 := []float32{-0.2, 0.7, 0.2, 0.4}
+	xs := append(x1, x2...)
+	xs = append(xs, x3...)
+	qin := q.QuantizeFloatMatrixInt8(3, 4, xs)
+	transposedqin := TransposeInt8(qin)
+	output := model.Forward(transposedqin)
 	print(output.context[0].matrix) // todo check results using int8/int32
 }
 

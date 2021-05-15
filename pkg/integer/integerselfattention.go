@@ -50,14 +50,19 @@ func NewFrom(m *selfattention.Model, startingB int) *Model {
 	}
 }
 
-func (m *Model) Forward(input QuantizedIntMatrix) Output {
+func (m *Model) Forward(input QuantizedInt8Matrix) Output {
 	out := Output{
 		scores:  make([][]QuantizedInt, len(input.matrix[0])),
 		context: make([]QuantizedIntMatrix, len(input.matrix[0])),
 	}
 	qkv := m.GetQKV(input)
-	tQueries := Transpose(qkv.Queries)
-	scores := Mul(tQueries, qkv.Keys)
+	// to int 8
+	i8Queries := m.QueryQuantization.RequantizeMatrix(qkv.Queries)
+	i8Keys := m.KeyQuantization.RequantizeMatrix(qkv.Keys)
+	i8Values := m.ValueQuantization.RequantizeMatrix(qkv.Values)
+
+	tQueries := TransposeInt8(i8Queries)
+	scores := MulInt8(tQueries, i8Keys)
 	qkquantization := NewQuantizationScaling(m.QueryQuantization.b, scores.scaling)
 	scaledScores := ProdScalar(scores, qkquantization.Quantize(m.ScaleFactor))
 	scoresquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.scaling, scaledScores.scaling)
@@ -66,12 +71,14 @@ func (m *Model) Forward(input QuantizedIntMatrix) Output {
 		softmaxquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.scaling,
 			out.scores[i][0].scaling)
 		scoresm := softmaxquantization.GetQuantizedMatrix(len(out.scores[i]), 1, out.scores[i])
-		out.context[i] = Mul(qkv.Values, scoresm)
+		//to int 8
+		i8Scores := softmaxquantization.RequantizeMatrix(scoresm)
+		out.context[i] = MulInt8(i8Values, i8Scores)
 	}
 	return out
 }
 
-func (m *Model) GetQKV(input QuantizedIntMatrix) IntQKV {
+func (m *Model) GetQKV(input QuantizedInt8Matrix) IntQKV {
 	return IntQKV{
 		Queries: m.Query.Forward(input),
 		Keys:    m.Key.Forward(input),
