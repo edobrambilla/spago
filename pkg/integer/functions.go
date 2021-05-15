@@ -62,7 +62,7 @@ func (q *Quantization) Quantize(x float32) QuantizedInt {
 
 func (q *Quantization) QuantizeInt8(x float32) QuantizedInt8 {
 	if q.b != 8 {
-		panic("Quantze int8: invalid b")
+		panic("Quantize int8: invalid b")
 	}
 	if x > q.clip {
 		x = q.clip
