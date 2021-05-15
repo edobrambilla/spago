@@ -312,7 +312,7 @@ func Transpose(a QuantizedIntMatrix) QuantizedIntMatrix {
 
 func Mul(a, b QuantizedIntMatrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix) {
-		panic("mat32: matrices with not compatible size")
+		panic("Mul: matrices with not compatible size")
 	}
 	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
@@ -327,7 +327,7 @@ func Mul(a, b QuantizedIntMatrix) QuantizedIntMatrix {
 
 func Prod(a, b QuantizedIntMatrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
-		panic("mat32: matrices with not compatible size")
+		panic("Prod: matrices with not compatible size")
 	}
 	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
@@ -350,7 +350,7 @@ func ProdScalar(a QuantizedIntMatrix, scalar QuantizedInt) QuantizedIntMatrix {
 
 func Add(a, b QuantizedIntMatrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
-		panic("mat32: matrices with not compatible size")
+		panic("Add: matrices with not compatible size")
 	}
 	if a.scaling != b.scaling {
 		panic("Add: warning, different scaling factor")
@@ -446,7 +446,7 @@ func TransposeInt8(a QuantizedInt8Matrix) QuantizedInt8Matrix {
 
 func MulInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix) {
-		panic("mat32: matrices with not compatible size")
+		panic("MulInt8: matrices with not compatible size")
 	}
 	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
@@ -461,7 +461,7 @@ func MulInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 
 func ProdInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
-		panic("mat32: matrices with not compatible size")
+		panic("ProdInt8: matrices with not compatible size")
 	}
 	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
@@ -484,7 +484,7 @@ func ProdScalarInt8(a QuantizedInt8Matrix, scalar QuantizedInt8) QuantizedIntMat
 
 func AddInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
-		panic("mat32: matrices with not compatible size")
+		panic("Add: matrices with not compatible size")
 	}
 	if a.scaling != b.scaling {
 		panic("Add: warning, different scaling factor")
