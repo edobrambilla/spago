@@ -57,22 +57,25 @@ func (m *Model) Forward(input QuantizedInt8Matrix) Output {
 	}
 	qkv := m.GetQKV(input)
 	// to int 8
-	i8Queries := m.QueryQuantization.RequantizeMatrix(qkv.Queries)
-	i8Keys := m.KeyQuantization.RequantizeMatrix(qkv.Keys)
-	i8Values := m.ValueQuantization.RequantizeMatrix(qkv.Values)
+	qkvQuantization := NewQuantizationScaling(m.ValueQuantization.b, qkv.Values.scaling)
+	i8Queries := qkvQuantization.RequantizeMatrixInt8(qkv.Queries)
+	i8Keys := qkvQuantization.RequantizeMatrixInt8(qkv.Keys)
+	i8Values := qkvQuantization.RequantizeMatrixInt8(qkv.Values)
 
 	tQueries := TransposeInt8(i8Queries)
 	scores := MulInt8(tQueries, i8Keys)
 	qkquantization := NewQuantizationScaling(m.QueryQuantization.b, scores.scaling)
 	scaledScores := ProdScalar(scores, qkquantization.Quantize(m.ScaleFactor))
-	scoresquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.scaling, scaledScores.scaling)
-	for i, attscores := range scaledScores.matrix {
-		out.scores[i] = scoresquantization.IntSoftmax(attscores)
-		softmaxquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.scaling,
+	scoresquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.clip, scaledScores.scaling)
+	rescaledScores := scoresquantization.RequantizeMatrix(scaledScores, 12)
+	rescaledscoresquantization := NewQuantizationClipScaling(12, 50, rescaledScores.scaling)
+	for i, attscores := range rescaledScores.matrix {
+		out.scores[i] = rescaledscoresquantization.IntSoftmax(attscores)
+		softmaxquantization := NewQuantizationClipScaling(m.QueryQuantization.b, m.QueryQuantization.clip,
 			out.scores[i][0].scaling)
 		scoresm := softmaxquantization.GetQuantizedMatrix(len(out.scores[i]), 1, out.scores[i])
 		//to int 8
-		i8Scores := softmaxquantization.RequantizeMatrix(scoresm)
+		i8Scores := softmaxquantization.RequantizeMatrixInt8(scoresm)
 		out.context[i] = MulInt8(i8Values, i8Scores)
 	}
 	return out

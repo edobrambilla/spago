@@ -40,7 +40,10 @@ func Test_LinearSelfAttention(t *testing.T) {
 	qin := q.QuantizeFloatMatrixInt8(3, 4, xs)
 	transposedqin := TransposeInt8(qin)
 	output := model.Forward(transposedqin)
-	print(output.context[0].matrix) // todo check results using int8/int32
+	assert.Equal(t, output.context[0].matrix[0][0], int32(104))
+	assert.Equal(t, output.context[0].matrix[1][0], int32(-115))
+	assert.Equal(t, output.context[0].matrix[2][0], int32(-55))
+	assert.InDelta(t, output.context[0].scaling, 0.007538794, 1.0e-6)
 }
 
 func newTestModel() *linear.Model {
