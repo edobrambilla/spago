@@ -83,7 +83,7 @@ func (q *Quantization) DequantizeInt8(x int8) float32 {
 }
 
 // Requantize quantized int to int8
-func (q *Quantization) Requantize(x int32, qInt8 *Quantization) QuantizedInt8 {
+func (q *Quantization) RequantizeInt8(x int32, qInt8 *Quantization) QuantizedInt8 {
 	f := q.Dequantize(x)
 	return qInt8.QuantizeInt8(f)
 }
@@ -452,7 +452,7 @@ func MulInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	for i := 0; i < len(a.matrix); i++ {
 		for j := 0; j < len(b.matrix[0]); j++ {
 			for k := 0; k < len(b.matrix); k++ {
-				m[i][j] += int32(a.matrix[i][k] * b.matrix[k][j])
+				m[i][j] += int32(a.matrix[i][k]) * int32(b.matrix[k][j])
 			}
 		}
 	}
@@ -466,7 +466,7 @@ func ProdInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
 		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = int32(a.matrix[i][j] * b.matrix[i][j])
+			m[i][j] = int32(a.matrix[i][j]) * int32(b.matrix[i][j])
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling * b.scaling}
@@ -476,7 +476,7 @@ func ProdScalarInt8(a QuantizedInt8Matrix, scalar QuantizedInt8) QuantizedIntMat
 	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
 		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = int32(a.matrix[i][j] * scalar.q)
+			m[i][j] = int32(a.matrix[i][j]) * int32(scalar.q)
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling * scalar.scaling}
@@ -492,13 +492,13 @@ func AddInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
 		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = int32(a.matrix[i][j] + b.matrix[i][j])
+			m[i][j] = int32(a.matrix[i][j]) + int32(b.matrix[i][j])
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling}
 }
 
-func (q *Quantization) RequantizeMatrix(input QuantizedIntMatrix) QuantizedInt8Matrix {
+func (q *Quantization) RequantizeMatrixInt8(input QuantizedIntMatrix) QuantizedInt8Matrix {
 	qOut := NewQuantization(8, q.clip)
 	m := make([][]int8, len(input.matrix))
 	for i := 0; i < len(input.matrix); i++ {
@@ -506,8 +506,23 @@ func (q *Quantization) RequantizeMatrix(input QuantizedIntMatrix) QuantizedInt8M
 	}
 	for i := 0; i < len(input.matrix); i++ {
 		for j := 0; j < len(input.matrix[0]); j++ {
-			m[i][j] = q.Requantize(input.matrix[i][j], &qOut).q
+			m[i][j] = q.RequantizeInt8(input.matrix[i][j], &qOut).q
 		}
 	}
 	return QuantizedInt8Matrix{m, qOut.scaling}
+}
+
+func (q *Quantization) RequantizeMatrix(input QuantizedIntMatrix, b int) QuantizedIntMatrix {
+	qOut := NewQuantization(b, q.clip)
+	m := make([][]int32, len(input.matrix))
+	for i := 0; i < len(input.matrix); i++ {
+		m[i] = make([]int32, len(input.matrix[0]))
+	}
+	for i := 0; i < len(input.matrix); i++ {
+		for j := 0; j < len(input.matrix[0]); j++ {
+			dq := q.Dequantize(input.matrix[i][j])
+			m[i][j] = qOut.Quantize(dq).q
+		}
+	}
+	return QuantizedIntMatrix{m, qOut.scaling}
 }

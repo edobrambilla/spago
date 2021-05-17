@@ -210,7 +210,7 @@ func TestQuantization_Requantize(t *testing.T) {
 	a := q.Quantize(0.1)
 	qi := a.q
 	assert.Equal(t, qi, int32(8589935))
-	x := q.Requantize(qi, &q8)
+	x := q.RequantizeInt8(qi, &q8)
 	assert.Equal(t, x.q, int8(1))
 	assert.InDelta(t, x.scaling, 0.19607843, 1.0e-6)
 }
