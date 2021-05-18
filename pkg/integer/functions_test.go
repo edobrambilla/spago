@@ -12,48 +12,48 @@ import (
 func TestQuantization_Quantize(t *testing.T) {
 	q := NewQuantization(7, 50)
 	a := q.Quantize(3.5678)
-	assert.Equal(t, a.q, int32(9))
-	x := q.Dequantize(a.q)
+	assert.Equal(t, a.value, int32(9))
+	x := q.Dequantize(a.value)
 	assert.InDelta(t, x, 3.5678, 1.0e-1)
 }
 
 func TestQuantiztion_IntegerGelu(t *testing.T) {
 	q := NewQuantization(7, 50)
 	a := q.Quantize(0.55)
-	assert.Equal(t, a.q, int32(1))
-	gelu := q.IntegerGelu(a.q)
-	assert.Equal(t, gelu.q, int32(-54))
+	assert.Equal(t, a.value, int32(1))
+	gelu := q.IntegerGelu(a.value)
+	assert.Equal(t, gelu.value, int32(-54))
 	assert.Equal(t, gelu.scaling, float32(-0.0044071344))
 	b := q.Quantize(-1)
-	gelu = q.IntegerGelu(b.q)
-	assert.Equal(t, gelu.q, int32(48))
+	gelu = q.IntegerGelu(b.value)
+	assert.Equal(t, gelu.value, int32(48))
 	assert.Equal(t, gelu.scaling, float32(-0.0044071344))
 }
 
 func TestQuantiztion_IntegerExp(t *testing.T) {
 	q := NewQuantization(12, 50)
 	a := q.Quantize(-0.55 - 1.2)
-	exp := q.IntegerExp(a.q)
-	assert.InDelta(t, float32(exp.q)*exp.scaling, float32(0.17566888), 1.0e-6)
+	exp := q.IntegerExp(a.value)
+	assert.InDelta(t, float32(exp.value)*exp.scaling, float32(0.17566888), 1.0e-6)
 	q = NewQuantization(12, 50)
 	b := q.Quantize(1.2 - 1.2)
-	exp = q.IntegerExp(b.q)
-	assert.InDelta(t, float32(exp.q)*exp.scaling, float32(0.9999778), 1.0e-6)
+	exp = q.IntegerExp(b.value)
+	assert.InDelta(t, float32(exp.value)*exp.scaling, float32(0.9999778), 1.0e-6)
 	q = NewQuantization(12, 50)
 	c := q.Quantize(-500 - 1.2)
-	exp = q.IntegerExp(c.q)
-	assert.InDelta(t, float32(exp.q)*exp.scaling, float32(9.313019e-10), 1.0e-6)
+	exp = q.IntegerExp(c.value)
+	assert.InDelta(t, float32(exp.value)*exp.scaling, float32(9.313019e-10), 1.0e-6)
 }
 
 func TestQuantiztion_IntegerSoftmax(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v := []int32{-45, 98, -491}
 	softmax := q.IntSoftmax(v)
-	s := float32(softmax[0].q) * softmax[0].scaling
+	s := float32(softmax[0].value) * softmax[0].scaling
 	assert.InDelta(t, s, float32(0.1492918), 1.0e-6)
-	s = float32(softmax[1].q) * softmax[0].scaling
+	s = float32(softmax[1].value) * softmax[0].scaling
 	assert.InDelta(t, s, float32(0.84999186), 1.0e-6)
-	s = float32(softmax[2].q) * softmax[0].scaling
+	s = float32(softmax[2].value) * softmax[0].scaling
 	assert.InDelta(t, s, float32(0.00058734), 1.0e-6)
 }
 
@@ -74,11 +74,11 @@ func TestQuantization_IntegerLayerNorm(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v := []int32{-45, 98, -491}
 	norm := q.IntNormalization(v)
-	s := float32(norm[0].q) * norm[0].scaling
+	s := float32(norm[0].value) * norm[0].scaling
 	assert.InDelta(t, s, float32(0.40293040), 1.0e-6)
-	s = float32(norm[1].q) * norm[0].scaling
+	s = float32(norm[1].value) * norm[0].scaling
 	assert.InDelta(t, s, float32(0.97680097), 1.0e-6)
-	s = float32(norm[2].q) * norm[0].scaling
+	s = float32(norm[2].value) * norm[0].scaling
 	assert.InDelta(t, s, float32(-1.3797313), 1.0e-6)
 }
 
@@ -133,7 +133,7 @@ func TestQuantization_LinearProdScalar(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v1 := []int32{2, -2, 4, 3, 4, -3}
 	s := QuantizedInt{
-		q:       2,
+		value:   2,
 		scaling: q.scaling,
 	}
 	a := q.GetQuantizedMatrixFromInt(2, 3, v1)
@@ -194,7 +194,7 @@ func TestQuantization_LinearProdScalarInt8(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v1 := []int8{2, -2, 4, 3, 4, -3}
 	s := QuantizedInt8{
-		q:       2,
+		value:   2,
 		scaling: q.scaling,
 	}
 	a := q.GetQuantizedMatrixFromInt8(2, 3, v1)
@@ -208,9 +208,9 @@ func TestQuantization_Requantize(t *testing.T) {
 	q := NewQuantization(32, 50)
 	q8 := NewQuantization(8, 50)
 	a := q.Quantize(0.1)
-	qi := a.q
+	qi := a.value
 	assert.Equal(t, qi, int32(8589935))
 	x := q.RequantizeInt8(qi, &q8)
-	assert.Equal(t, x.q, int8(1))
+	assert.Equal(t, x.value, int8(1))
 	assert.InDelta(t, x.scaling, 0.19607843, 1.0e-6)
 }

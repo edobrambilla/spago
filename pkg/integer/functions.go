@@ -16,12 +16,12 @@ type Quantization struct {
 }
 
 type QuantizedInt8 struct {
-	q       int8    // quantized value
+	value   int8    // quantized value
 	scaling float32 // scaling factor. x (float) = q * scaling
 }
 
 type QuantizedInt struct {
-	q       int32   // quantized value
+	value   int32   // quantized value
 	scaling float32 // scaling factor. x (float) = q * scaling
 }
 
@@ -123,7 +123,7 @@ func (q *Quantization) integerErf(input int32) QuantizedInt {
 		}
 	}
 	qL := qtmp.integerPoly(a, b, c, input)
-	qOut := qsgn * qL.q
+	qOut := qsgn * qL.value
 	scalingOut := qL.scaling
 	return QuantizedInt{qOut, scalingOut}
 }
@@ -132,7 +132,7 @@ func (q *Quantization) IntegerGelu(input int32) QuantizedInt {
 	qtmp := Quantization{q.b, math.MaxFloat32, q.scaling / 1.4142135624}
 	qErf := qtmp.integerErf(input)
 	qOne := int32(math.Floor(float64(1.0 / qErf.scaling)))
-	qOut := input * (qErf.q + qOne)
+	qOut := input * (qErf.value + qOne)
 	scalingOut := q.scaling * qErf.scaling / 2
 
 	return QuantizedInt{qOut, scalingOut}
@@ -153,7 +153,7 @@ func (q *Quantization) IntegerExp(input int32) QuantizedInt {
 	r := qint - qln*qp
 	qtmp := Quantization{q.b, math.MaxFloat32, q.scaling}
 	expInt := qtmp.integerPoly2(a, b, c, r)
-	t := expInt.q >> qp
+	t := expInt.value >> qp
 	return QuantizedInt{t, expInt.scaling}
 }
 
@@ -173,12 +173,12 @@ func (q *Quantization) IntSoftmax(input []int32) []QuantizedInt {
 	exp := make([]QuantizedInt, 0)
 	for i := 0; i < len(input); i++ {
 		exp = append(exp, q.IntegerExp(input[i]-max))
-		sum += exp[i].q
+		sum += exp[i].value
 	}
 	factor := exp[0].scaling
 	for i := 0; i < len(input); i++ {
-		div := (float32(exp[i].q) / float32(sum)) / factor
-		exp[i].q = int32(math.Floor(float64(div)))
+		div := (float32(exp[i].value) / float32(sum)) / factor
+		exp[i].value = int32(math.Floor(float64(div)))
 	}
 	return exp
 }
@@ -225,7 +225,7 @@ func (q *Quantization) IntNormalization(input []int32) []QuantizedInt {
 	stdDev = IntSqrt(stdDev)
 	for i := 0; i < len(input); i++ {
 		normalizedLayer = append(normalizedLayer, QuantizedInt{
-			q:       int32(math.Round(float64(input[i]-avg) / (float64(stdDev) * float64(q.scaling)))),
+			value:   int32(math.Round(float64(input[i]-avg) / (float64(stdDev) * float64(q.scaling)))),
 			scaling: q.scaling,
 		})
 	}
@@ -255,7 +255,7 @@ func (q *Quantization) GetQuantizedMatrix(rows, cols int, data []QuantizedInt) Q
 	k := 0
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			m[i][j] = data[k].q
+			m[i][j] = data[k].value
 			k++
 		}
 	}
@@ -270,7 +270,7 @@ func (q *Quantization) QuantizeFloatMatrix(rows, cols int, data []float32) Quant
 	k := 0
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			m[i][j] = q.Quantize(data[k]).q
+			m[i][j] = q.Quantize(data[k]).value
 			k++
 		}
 	}
@@ -342,7 +342,7 @@ func ProdScalar(a QuantizedIntMatrix, scalar QuantizedInt) QuantizedIntMatrix {
 	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
 		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = a.matrix[i][j] * scalar.q
+			m[i][j] = a.matrix[i][j] * scalar.value
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling * scalar.scaling}
@@ -389,7 +389,7 @@ func (q *Quantization) GetQuantizedMatrixInt8(rows, cols int, data []QuantizedIn
 	k := 0
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			m[i][j] = data[k].q
+			m[i][j] = data[k].value
 			k++
 		}
 	}
@@ -404,7 +404,7 @@ func (q *Quantization) QuantizeFloatMatrixInt8(rows, cols int, data []float32) Q
 	k := 0
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			m[i][j] = q.QuantizeInt8(data[k]).q
+			m[i][j] = q.QuantizeInt8(data[k]).value
 			k++
 		}
 	}
@@ -476,7 +476,7 @@ func ProdScalarInt8(a QuantizedInt8Matrix, scalar QuantizedInt8) QuantizedIntMat
 	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
 	for i := 0; i < len(a.matrix); i++ {
 		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = int32(a.matrix[i][j]) * int32(scalar.q)
+			m[i][j] = int32(a.matrix[i][j]) * int32(scalar.value)
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling * scalar.scaling}
@@ -506,7 +506,7 @@ func (q *Quantization) RequantizeMatrixInt8(input QuantizedIntMatrix) QuantizedI
 	}
 	for i := 0; i < len(input.matrix); i++ {
 		for j := 0; j < len(input.matrix[0]); j++ {
-			m[i][j] = q.RequantizeInt8(input.matrix[i][j], &qOut).q
+			m[i][j] = q.RequantizeInt8(input.matrix[i][j], &qOut).value
 		}
 	}
 	return QuantizedInt8Matrix{m, qOut.scaling}
@@ -521,7 +521,7 @@ func (q *Quantization) RequantizeMatrix(input QuantizedIntMatrix, b int) Quantiz
 	for i := 0; i < len(input.matrix); i++ {
 		for j := 0; j < len(input.matrix[0]); j++ {
 			dq := q.Dequantize(input.matrix[i][j])
-			m[i][j] = qOut.Quantize(dq).q
+			m[i][j] = qOut.Quantize(dq).value
 		}
 	}
 	return QuantizedIntMatrix{m, qOut.scaling}
