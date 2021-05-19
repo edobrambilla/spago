@@ -10,8 +10,8 @@ import (
 )
 
 type Quantization struct {
-	b       int     // quantization bit precision. e.g. 32
-	clip    float32 // clipping parameter used to control the outliers
+	B       int     // quantization bit precision. e.g. 32
+	Clip    float32 // clipping parameter used to control the outliers
 	scaling float32 // scaling factor
 }
 
@@ -21,18 +21,18 @@ type QuantizedInt8 struct {
 }
 
 type QuantizedInt struct {
-	value   int32   // quantized value
-	scaling float32 // scaling factor. x (float) = q * scaling
+	Value   int32   // quantized Value
+	Scaling float32 // Scaling factor. x (float) = q * Scaling
 }
 
 type QuantizedInt8Matrix struct {
-	matrix  [][]int8 // quantized matrix
+	Matrix  [][]int8 // quantized Matrix
 	scaling float32  // scaling factor. x (float) = q * scaling
 }
 
 type QuantizedIntMatrix struct {
-	matrix  [][]int32 // quantized matrix
-	scaling float32   // scaling factor. x (float) = q * scaling
+	Matrix  [][]int32 // quantized Matrix
+	Scaling float32   // Scaling factor. x (float) = q * Scaling
 }
 
 func NewQuantization(b int, clip float32) Quantization {
@@ -50,25 +50,25 @@ func NewQuantizationClipScaling(b int, clip float32, scaling float32) Quantizati
 }
 
 func (q *Quantization) Quantize(x float32) QuantizedInt {
-	if x > q.clip {
-		x = q.clip
+	if x > q.Clip {
+		x = q.Clip
 	}
-	if x < -q.clip {
-		x = -q.clip
+	if x < -q.Clip {
+		x = -q.Clip
 	}
 
 	return QuantizedInt{int32(math.Round(float64(x / q.scaling))), q.scaling}
 }
 
 func (q *Quantization) QuantizeInt8(x float32) QuantizedInt8 {
-	if q.b != 8 {
+	if q.B != 8 {
 		panic("Quantize int8: invalid b")
 	}
-	if x > q.clip {
-		x = q.clip
+	if x > q.Clip {
+		x = q.Clip
 	}
-	if x < -q.clip {
-		x = -q.clip
+	if x < -q.Clip {
+		x = -q.Clip
 	}
 
 	return QuantizedInt8{int8(math.Round(float64(x / q.scaling))), q.scaling}
@@ -109,7 +109,7 @@ func (q *Quantization) integerErf(input int32) QuantizedInt {
 	b := float32(-1.769)
 	c := float32(1.0)
 	var qsgn = int32(1)
-	qtmp := Quantization{q.b, math.MaxFloat32, q.scaling}
+	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling}
 	if input > 0 {
 		if input > (int32(-b / q.scaling)) {
 			input = int32(-b / q.scaling)
@@ -123,17 +123,17 @@ func (q *Quantization) integerErf(input int32) QuantizedInt {
 		}
 	}
 	qL := qtmp.integerPoly(a, b, c, input)
-	qOut := qsgn * qL.value
-	scalingOut := qL.scaling
+	qOut := qsgn * qL.Value
+	scalingOut := qL.Scaling
 	return QuantizedInt{qOut, scalingOut}
 }
 
 func (q *Quantization) IntegerGelu(input int32) QuantizedInt {
-	qtmp := Quantization{q.b, math.MaxFloat32, q.scaling / 1.4142135624}
+	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling / 1.4142135624}
 	qErf := qtmp.integerErf(input)
-	qOne := int32(math.Floor(float64(1.0 / qErf.scaling)))
-	qOut := input * (qErf.value + qOne)
-	scalingOut := q.scaling * qErf.scaling / 2
+	qOne := int32(math.Floor(float64(1.0 / qErf.Scaling)))
+	qOut := input * (qErf.Value + qOne)
+	scalingOut := q.scaling * qErf.Scaling / 2
 
 	return QuantizedInt{qOut, scalingOut}
 }
@@ -151,10 +151,10 @@ func (q *Quantization) IntegerExp(input int32) QuantizedInt {
 	}
 	qp := int32(math.Floor(float64(qint / qln)))
 	r := qint - qln*qp
-	qtmp := Quantization{q.b, math.MaxFloat32, q.scaling}
+	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling}
 	expInt := qtmp.integerPoly2(a, b, c, r)
-	t := expInt.value >> qp
-	return QuantizedInt{t, expInt.scaling}
+	t := expInt.Value >> qp
+	return QuantizedInt{t, expInt.Scaling}
 }
 
 func max(input []int32) int32 {
@@ -173,12 +173,12 @@ func (q *Quantization) IntSoftmax(input []int32) []QuantizedInt {
 	exp := make([]QuantizedInt, 0)
 	for i := 0; i < len(input); i++ {
 		exp = append(exp, q.IntegerExp(input[i]-max))
-		sum += exp[i].value
+		sum += exp[i].Value
 	}
-	factor := exp[0].scaling
+	factor := exp[0].Scaling
 	for i := 0; i < len(input); i++ {
-		div := (float32(exp[i].value) / float32(sum)) / factor
-		exp[i].value = int32(math.Floor(float64(div)))
+		div := (float32(exp[i].Value) / float32(sum)) / factor
+		exp[i].Value = int32(math.Floor(float64(div)))
 	}
 	return exp
 }
@@ -225,8 +225,8 @@ func (q *Quantization) IntNormalization(input []int32) []QuantizedInt {
 	stdDev = IntSqrt(stdDev)
 	for i := 0; i < len(input); i++ {
 		normalizedLayer = append(normalizedLayer, QuantizedInt{
-			value:   int32(math.Round(float64(input[i]-avg) / (float64(stdDev) * float64(q.scaling)))),
-			scaling: q.scaling,
+			Value:   int32(math.Round(float64(input[i]-avg) / (float64(stdDev) * float64(q.scaling)))),
+			Scaling: q.scaling,
 		})
 	}
 	return normalizedLayer
@@ -255,7 +255,7 @@ func (q *Quantization) GetQuantizedMatrix(rows, cols int, data []QuantizedInt) Q
 	k := 0
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			m[i][j] = data[k].value
+			m[i][j] = data[k].Value
 			k++
 		}
 	}
@@ -270,7 +270,7 @@ func (q *Quantization) QuantizeFloatMatrix(rows, cols int, data []float32) Quant
 	k := 0
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			m[i][j] = q.Quantize(data[k]).value
+			m[i][j] = q.Quantize(data[k]).Value
 			k++
 		}
 	}
@@ -278,14 +278,14 @@ func (q *Quantization) QuantizeFloatMatrix(rows, cols int, data []float32) Quant
 }
 
 func (q *Quantization) DequantizeMatrix(input QuantizedIntMatrix) [][]float32 {
-	qOut := NewQuantizationClipScaling(q.b, q.clip, input.scaling)
-	m := make([][]float32, len(input.matrix))
-	for i := 0; i < len(input.matrix); i++ {
-		m[i] = make([]float32, len(input.matrix[0]))
+	qOut := NewQuantizationClipScaling(q.B, q.Clip, input.Scaling)
+	m := make([][]float32, len(input.Matrix))
+	for i := 0; i < len(input.Matrix); i++ {
+		m[i] = make([]float32, len(input.Matrix[0]))
 	}
-	for i := 0; i < len(input.matrix); i++ {
-		for j := 0; j < len(input.matrix[0]); j++ {
-			m[i][j] = qOut.Dequantize(input.matrix[i][j])
+	for i := 0; i < len(input.Matrix); i++ {
+		for j := 0; j < len(input.Matrix[0]); j++ {
+			m[i][j] = qOut.Dequantize(input.Matrix[i][j])
 		}
 	}
 	return m
@@ -300,68 +300,68 @@ func intZeroMatrix(rows, cols int) [][]int32 {
 }
 
 func Transpose(a QuantizedIntMatrix) QuantizedIntMatrix {
-	m := intZeroMatrix(len(a.matrix[0]), len(a.matrix))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[j][i] += a.matrix[i][j]
+	m := intZeroMatrix(len(a.Matrix[0]), len(a.Matrix))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[j][i] += a.Matrix[i][j]
 
 		}
 	}
-	return QuantizedIntMatrix{m, a.scaling}
+	return QuantizedIntMatrix{m, a.Scaling}
 }
 
 func Mul(a, b QuantizedIntMatrix) QuantizedIntMatrix {
-	if len(a.matrix[0]) != len(b.matrix) {
+	if len(a.Matrix[0]) != len(b.Matrix) {
 		panic("Mul: matrices with not compatible size")
 	}
-	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(b.matrix[0]); j++ {
-			for k := 0; k < len(b.matrix); k++ {
-				m[i][j] += a.matrix[i][k] * b.matrix[k][j]
+	m := intZeroMatrix(len(a.Matrix), len(b.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(b.Matrix[0]); j++ {
+			for k := 0; k < len(b.Matrix); k++ {
+				m[i][j] += a.Matrix[i][k] * b.Matrix[k][j]
 			}
 		}
 	}
-	return QuantizedIntMatrix{m, a.scaling * b.scaling}
+	return QuantizedIntMatrix{m, a.Scaling * b.Scaling}
 }
 
 func Prod(a, b QuantizedIntMatrix) QuantizedIntMatrix {
-	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
+	if len(a.Matrix[0]) != len(b.Matrix[0]) && (len(a.Matrix) != len(b.Matrix)) {
 		panic("Prod: matrices with not compatible size")
 	}
-	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = a.matrix[i][j] * b.matrix[i][j]
+	m := intZeroMatrix(len(a.Matrix), len(b.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = a.Matrix[i][j] * b.Matrix[i][j]
 		}
 	}
-	return QuantizedIntMatrix{m, a.scaling * b.scaling}
+	return QuantizedIntMatrix{m, a.Scaling * b.Scaling}
 }
 
 func ProdScalar(a QuantizedIntMatrix, scalar QuantizedInt) QuantizedIntMatrix {
-	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = a.matrix[i][j] * scalar.value
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = a.Matrix[i][j] * scalar.Value
 		}
 	}
-	return QuantizedIntMatrix{m, a.scaling * scalar.scaling}
+	return QuantizedIntMatrix{m, a.Scaling * scalar.Scaling}
 }
 
 func Add(a, b QuantizedIntMatrix) QuantizedIntMatrix {
-	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
+	if len(a.Matrix[0]) != len(b.Matrix[0]) && (len(a.Matrix) != len(b.Matrix)) {
 		panic("Add: matrices with not compatible size")
 	}
-	if a.scaling != b.scaling {
+	if a.Scaling != b.Scaling {
 		panic("Add: warning, different scaling factor")
 	}
-	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = a.matrix[i][j] + b.matrix[i][j]
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = a.Matrix[i][j] + b.Matrix[i][j]
 		}
 	}
-	return QuantizedIntMatrix{m, a.scaling}
+	return QuantizedIntMatrix{m, a.Scaling}
 }
 
 // Int8 functions
@@ -412,14 +412,14 @@ func (q *Quantization) QuantizeFloatMatrixInt8(rows, cols int, data []float32) Q
 }
 
 func (q *Quantization) DequantizeMatrixInt8(input QuantizedInt8Matrix) [][]float32 {
-	qOut := NewQuantizationClipScaling(q.b, q.clip, input.scaling)
-	m := make([][]float32, len(input.matrix))
-	for i := 0; i < len(input.matrix); i++ {
-		m[i] = make([]float32, len(input.matrix[0]))
+	qOut := NewQuantizationClipScaling(q.B, q.Clip, input.scaling)
+	m := make([][]float32, len(input.Matrix))
+	for i := 0; i < len(input.Matrix); i++ {
+		m[i] = make([]float32, len(input.Matrix[0]))
 	}
-	for i := 0; i < len(input.matrix); i++ {
-		for j := 0; j < len(input.matrix[0]); j++ {
-			m[i][j] = qOut.DequantizeInt8(input.matrix[i][j])
+	for i := 0; i < len(input.Matrix); i++ {
+		for j := 0; j < len(input.Matrix[0]); j++ {
+			m[i][j] = qOut.DequantizeInt8(input.Matrix[i][j])
 		}
 	}
 	return m
@@ -434,10 +434,10 @@ func int8ZeroMatrix(rows, cols int) [][]int8 {
 }
 
 func TransposeInt8(a QuantizedInt8Matrix) QuantizedInt8Matrix {
-	m := int8ZeroMatrix(len(a.matrix[0]), len(a.matrix))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[j][i] += a.matrix[i][j]
+	m := int8ZeroMatrix(len(a.Matrix[0]), len(a.Matrix))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[j][i] += a.Matrix[i][j]
 
 		}
 	}
@@ -445,14 +445,14 @@ func TransposeInt8(a QuantizedInt8Matrix) QuantizedInt8Matrix {
 }
 
 func MulInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
-	if len(a.matrix[0]) != len(b.matrix) {
+	if len(a.Matrix[0]) != len(b.Matrix) {
 		panic("MulInt8: matrices with not compatible size")
 	}
-	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(b.matrix[0]); j++ {
-			for k := 0; k < len(b.matrix); k++ {
-				m[i][j] += int32(a.matrix[i][k]) * int32(b.matrix[k][j])
+	m := intZeroMatrix(len(a.Matrix), len(b.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(b.Matrix[0]); j++ {
+			for k := 0; k < len(b.Matrix); k++ {
+				m[i][j] += int32(a.Matrix[i][k]) * int32(b.Matrix[k][j])
 			}
 		}
 	}
@@ -460,68 +460,68 @@ func MulInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 }
 
 func ProdInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
-	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
+	if len(a.Matrix[0]) != len(b.Matrix[0]) && (len(a.Matrix) != len(b.Matrix)) {
 		panic("ProdInt8: matrices with not compatible size")
 	}
-	m := intZeroMatrix(len(a.matrix), len(b.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = int32(a.matrix[i][j]) * int32(b.matrix[i][j])
+	m := intZeroMatrix(len(a.Matrix), len(b.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = int32(a.Matrix[i][j]) * int32(b.Matrix[i][j])
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling * b.scaling}
 }
 
 func ProdScalarInt8(a QuantizedInt8Matrix, scalar QuantizedInt8) QuantizedIntMatrix {
-	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = int32(a.matrix[i][j]) * int32(scalar.value)
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = int32(a.Matrix[i][j]) * int32(scalar.value)
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling * scalar.scaling}
 }
 
 func AddInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
-	if len(a.matrix[0]) != len(b.matrix[0]) && (len(a.matrix) != len(b.matrix)) {
+	if len(a.Matrix[0]) != len(b.Matrix[0]) && (len(a.Matrix) != len(b.Matrix)) {
 		panic("Add: matrices with not compatible size")
 	}
 	if a.scaling != b.scaling {
 		panic("Add: warning, different scaling factor")
 	}
-	m := intZeroMatrix(len(a.matrix), len(a.matrix[0]))
-	for i := 0; i < len(a.matrix); i++ {
-		for j := 0; j < len(a.matrix[0]); j++ {
-			m[i][j] = int32(a.matrix[i][j]) + int32(b.matrix[i][j])
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = int32(a.Matrix[i][j]) + int32(b.Matrix[i][j])
 		}
 	}
 	return QuantizedIntMatrix{m, a.scaling}
 }
 
 func (q *Quantization) RequantizeMatrixInt8(input QuantizedIntMatrix) QuantizedInt8Matrix {
-	qOut := NewQuantization(8, q.clip)
-	m := make([][]int8, len(input.matrix))
-	for i := 0; i < len(input.matrix); i++ {
-		m[i] = make([]int8, len(input.matrix[0]))
+	qOut := NewQuantization(8, q.Clip)
+	m := make([][]int8, len(input.Matrix))
+	for i := 0; i < len(input.Matrix); i++ {
+		m[i] = make([]int8, len(input.Matrix[0]))
 	}
-	for i := 0; i < len(input.matrix); i++ {
-		for j := 0; j < len(input.matrix[0]); j++ {
-			m[i][j] = q.RequantizeInt8(input.matrix[i][j], &qOut).value
+	for i := 0; i < len(input.Matrix); i++ {
+		for j := 0; j < len(input.Matrix[0]); j++ {
+			m[i][j] = q.RequantizeInt8(input.Matrix[i][j], &qOut).value
 		}
 	}
 	return QuantizedInt8Matrix{m, qOut.scaling}
 }
 
 func (q *Quantization) RequantizeMatrix(input QuantizedIntMatrix, b int) QuantizedIntMatrix {
-	qOut := NewQuantization(b, q.clip)
-	m := make([][]int32, len(input.matrix))
-	for i := 0; i < len(input.matrix); i++ {
-		m[i] = make([]int32, len(input.matrix[0]))
+	qOut := NewQuantization(b, q.Clip)
+	m := make([][]int32, len(input.Matrix))
+	for i := 0; i < len(input.Matrix); i++ {
+		m[i] = make([]int32, len(input.Matrix[0]))
 	}
-	for i := 0; i < len(input.matrix); i++ {
-		for j := 0; j < len(input.matrix[0]); j++ {
-			dq := q.Dequantize(input.matrix[i][j])
-			m[i][j] = qOut.Quantize(dq).value
+	for i := 0; i < len(input.Matrix); i++ {
+		for j := 0; j < len(input.Matrix[0]); j++ {
+			dq := q.Dequantize(input.Matrix[i][j])
+			m[i][j] = qOut.Quantize(dq).Value
 		}
 	}
 	return QuantizedIntMatrix{m, qOut.scaling}
@@ -530,13 +530,13 @@ func (q *Quantization) RequantizeMatrix(input QuantizedIntMatrix, b int) Quantiz
 // Stack row vectors only
 func (q *Quantization) Stack(input ...QuantizedIntMatrix) QuantizedIntMatrix {
 	m := make([][]int32, len(input))
-	vlen := len(input[0].matrix[0])
+	vlen := len(input[0].Matrix[0])
 	for i := 0; i < len(input); i++ {
 		m[i] = make([]int32, vlen)
 	}
 	for i := 0; i < len(input); i++ {
 		for j := 0; j < vlen; j++ {
-			m[i][j] = input[i].matrix[0][j]
+			m[i][j] = input[i].Matrix[0][j]
 		}
 	}
 	return QuantizedIntMatrix{m, q.scaling}
@@ -544,13 +544,13 @@ func (q *Quantization) Stack(input ...QuantizedIntMatrix) QuantizedIntMatrix {
 
 func (q *Quantization) StackInt8(input ...QuantizedInt8Matrix) QuantizedInt8Matrix {
 	m := make([][]int8, len(input))
-	vlen := len(input[0].matrix[0])
+	vlen := len(input[0].Matrix[0])
 	for i := 0; i < len(input); i++ {
 		m[i] = make([]int8, vlen)
 	}
 	for i := 0; i < len(input); i++ {
 		for j := 0; j < vlen; j++ {
-			m[i][j] = input[i].matrix[0][j]
+			m[i][j] = input[i].Matrix[0][j]
 		}
 	}
 	return QuantizedInt8Matrix{m, q.scaling}

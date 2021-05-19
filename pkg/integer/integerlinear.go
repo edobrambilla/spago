@@ -16,7 +16,7 @@ type IntModel struct {
 
 // New returns a new model with parameters initialized to zeros.
 func NewLinearIntModel(lm *linear.Model, q Quantization) *IntModel {
-	qb := NewQuantizationClipScaling(q.b, q.clip, q.scaling*q.scaling)
+	qb := NewQuantizationClipScaling(q.B, q.Clip, q.scaling*q.scaling)
 	model := &IntModel{
 		W: q.QuantizeFloatMatrixInt8(lm.W.Value().Rows(), lm.W.Value().Columns(), lm.W.Value().Data()),
 		B: qb.QuantizeFloatMatrix(lm.B.Value().Rows(), lm.B.Value().Columns(), lm.B.Value().Data()),
@@ -27,16 +27,16 @@ func NewLinearIntModel(lm *linear.Model, q Quantization) *IntModel {
 // Forward performs the forward step for each input node and returns the result.
 func (m *IntModel) Forward(xs QuantizedInt8Matrix) QuantizedIntMatrix {
 	out := MulInt8(m.W, xs)
-	stackedB := make([][]int32, len(out.matrix))
+	stackedB := make([][]int32, len(out.Matrix))
 	for i := 0; i < len(stackedB); i++ {
-		stackedB[i] = make([]int32, len(out.matrix[0]))
-		for j := 0; j < len(out.matrix[0]); j++ {
-			stackedB[i][j] = m.B.matrix[i][0]
+		stackedB[i] = make([]int32, len(out.Matrix[0]))
+		for j := 0; j < len(out.Matrix[0]); j++ {
+			stackedB[i][j] = m.B.Matrix[i][0]
 		}
 	}
 	quantizedOut := Add(out, QuantizedIntMatrix{
-		matrix:  stackedB,
-		scaling: m.B.scaling,
+		Matrix:  stackedB,
+		Scaling: m.B.Scaling,
 	})
 	return quantizedOut
 }
