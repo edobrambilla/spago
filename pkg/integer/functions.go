@@ -526,3 +526,32 @@ func (q *Quantization) RequantizeMatrix(input QuantizedIntMatrix, b int) Quantiz
 	}
 	return QuantizedIntMatrix{m, qOut.scaling}
 }
+
+// Stack row vectors only
+func (q *Quantization) Stack(input ...QuantizedIntMatrix) QuantizedIntMatrix {
+	m := make([][]int32, len(input))
+	vlen := len(input[0].matrix[0])
+	for i := 0; i < len(input); i++ {
+		m[i] = make([]int32, vlen)
+	}
+	for i := 0; i < len(input); i++ {
+		for j := 0; j < vlen; j++ {
+			m[i][j] = input[i].matrix[0][j]
+		}
+	}
+	return QuantizedIntMatrix{m, q.scaling}
+}
+
+func (q *Quantization) StackInt8(input ...QuantizedInt8Matrix) QuantizedInt8Matrix {
+	m := make([][]int8, len(input))
+	vlen := len(input[0].matrix[0])
+	for i := 0; i < len(input); i++ {
+		m[i] = make([]int8, vlen)
+	}
+	for i := 0; i < len(input); i++ {
+		for j := 0; j < vlen; j++ {
+			m[i][j] = input[i].matrix[0][j]
+		}
+	}
+	return QuantizedInt8Matrix{m, q.scaling}
+}

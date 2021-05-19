@@ -214,3 +214,27 @@ func TestQuantization_Requantize(t *testing.T) {
 	assert.Equal(t, x.value, int8(1))
 	assert.InDelta(t, x.scaling, 0.19607843, 1.0e-6)
 }
+
+func TestQuantization_Stack(t *testing.T) {
+	q := NewQuantization(8, 50)
+	v1 := []int32{2, -2, 4, 3, 4, -3}
+	v2 := []int32{2, -2, 4, 3, 9, -3}
+	v3 := []int32{2, -2, 7, 3, 0, -3}
+	a1 := q.GetQuantizedMatrixFromInt(1, 6, v1)
+	a2 := q.GetQuantizedMatrixFromInt(1, 6, v2)
+	a3 := q.GetQuantizedMatrixFromInt(1, 6, v3)
+	c := q.Stack(a1, a2, a3)
+	assert.Equal(t, c.matrix[2][4], int32(0))
+}
+
+func TestQuantization_StackInt8(t *testing.T) {
+	q := NewQuantization(8, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	v2 := []int8{2, -2, 4, 3, 9, -3}
+	v3 := []int8{2, -2, 7, 3, 0, -3}
+	a1 := q.GetQuantizedMatrixFromInt8(1, 6, v1)
+	a2 := q.GetQuantizedMatrixFromInt8(1, 6, v2)
+	a3 := q.GetQuantizedMatrixFromInt8(1, 6, v3)
+	c := q.StackInt8(a1, a2, a3)
+	assert.Equal(t, c.matrix[2][2], int8(7))
+}
