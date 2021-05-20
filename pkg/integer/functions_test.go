@@ -238,3 +238,27 @@ func TestQuantization_StackInt8(t *testing.T) {
 	c := q.StackInt8(a1, a2, a3)
 	assert.Equal(t, c.Matrix[2][2], int8(7))
 }
+
+func TestQuantization_Concat(t *testing.T) {
+	q := NewQuantization(8, 50)
+	v1 := []int32{2, -2, 4, 3, 4, -3}
+	v2 := []int32{2, -2, 4, 3, 9, -3}
+	v3 := []int32{2, -2, 7, 3, 0, -3}
+	a1 := q.GetQuantizedMatrixFromInt(1, 6, v1)
+	a2 := q.GetQuantizedMatrixFromInt(1, 6, v2)
+	a3 := q.GetQuantizedMatrixFromInt(1, 6, v3)
+	c := q.Concat(a1, a2, a3)
+	assert.Equal(t, c.Matrix[0][16], int32(0))
+}
+
+func TestQuantization_ConcatInt8(t *testing.T) {
+	q := NewQuantization(8, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	v2 := []int8{2, -2, 4, 3, 9, -3}
+	v3 := []int8{2, -2, 7, 3, 0, -3}
+	a1 := q.GetQuantizedMatrixFromInt8(1, 6, v1)
+	a2 := q.GetQuantizedMatrixFromInt8(1, 6, v2)
+	a3 := q.GetQuantizedMatrixFromInt8(1, 6, v3)
+	c := q.ConcatInt8(a1, a2, a3)
+	assert.Equal(t, c.Matrix[0][14], int8(7))
+}

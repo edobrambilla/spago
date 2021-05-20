@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package selfattention
+package intselfattention
 
 import (
 	"github.com/nlpodyssey/spago/pkg/integer"
@@ -41,25 +41,25 @@ func Test_LinearSelfAttention(t *testing.T) {
 	qin := q.QuantizeFloatMatrixInt8(3, 4, xs)
 	transposedqin := integer.TransposeInt8(qin)
 	output := model.Forward(transposedqin)
-	assert.Equal(t, output.context[0].Matrix[0][0], int32(104))
-	assert.Equal(t, output.context[0].Matrix[1][0], int32(-115))
-	assert.Equal(t, output.context[0].Matrix[2][0], int32(-55))
-	assert.Equal(t, output.context[1].Matrix[0][0], int32(104))
-	assert.Equal(t, output.context[1].Matrix[1][0], int32(-115))
-	assert.Equal(t, output.context[1].Matrix[2][0], int32(-55))
-	assert.Equal(t, output.context[2].Matrix[0][0], int32(104))
-	assert.Equal(t, output.context[2].Matrix[1][0], int32(-76))
-	assert.Equal(t, output.context[2].Matrix[2][0], int32(-43))
-	assert.Equal(t, output.scores[0][0].Value, int32(11468))
-	assert.Equal(t, output.scores[0][1].Value, int32(4029))
-	assert.Equal(t, output.scores[0][2].Value, int32(3230))
-	assert.Equal(t, output.scores[1][0].Value, int32(9800))
-	assert.Equal(t, output.scores[1][1].Value, int32(4142))
-	assert.Equal(t, output.scores[1][2].Value, int32(4785))
-	assert.Equal(t, output.scores[2][0].Value, int32(7897))
-	assert.Equal(t, output.scores[2][1].Value, int32(5281))
-	assert.Equal(t, output.scores[2][2].Value, int32(5549))
-	assert.InDelta(t, output.context[0].Scaling, 0.007538794, 1.0e-6)
+	assert.Equal(t, output.Context[0].Matrix[0][0], int32(104))
+	assert.Equal(t, output.Context[0].Matrix[1][0], int32(-115))
+	assert.Equal(t, output.Context[0].Matrix[2][0], int32(-55))
+	assert.Equal(t, output.Context[1].Matrix[0][0], int32(104))
+	assert.Equal(t, output.Context[1].Matrix[1][0], int32(-115))
+	assert.Equal(t, output.Context[1].Matrix[2][0], int32(-55))
+	assert.Equal(t, output.Context[2].Matrix[0][0], int32(104))
+	assert.Equal(t, output.Context[2].Matrix[1][0], int32(-76))
+	assert.Equal(t, output.Context[2].Matrix[2][0], int32(-43))
+	assert.Equal(t, output.Scores[0][0].Value, int32(11468))
+	assert.Equal(t, output.Scores[0][1].Value, int32(4029))
+	assert.Equal(t, output.Scores[0][2].Value, int32(3230))
+	assert.Equal(t, output.Scores[1][0].Value, int32(9800))
+	assert.Equal(t, output.Scores[1][1].Value, int32(4142))
+	assert.Equal(t, output.Scores[1][2].Value, int32(4785))
+	assert.Equal(t, output.Scores[2][0].Value, int32(7897))
+	assert.Equal(t, output.Scores[2][1].Value, int32(5281))
+	assert.Equal(t, output.Scores[2][2].Value, int32(5549))
+	assert.InDelta(t, output.Context[0].Scaling, 0.007538794, 1.0e-6)
 }
 
 func newTestModel() *linear.Model {

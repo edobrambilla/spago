@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package selfattention
+package intselfattention
 
 import (
 	"github.com/nlpodyssey/spago/pkg/integer"
@@ -31,8 +31,8 @@ type Model struct {
 //}
 
 type Output struct {
-	scores  [][]integer.QuantizedInt
-	context []integer.QuantizedIntMatrix
+	Scores  [][]integer.QuantizedInt
+	Context []integer.QuantizedIntMatrix
 }
 
 // New returns a new model with parameters initialized to zeros.
@@ -53,8 +53,8 @@ func NewFrom(m *selfattention.Model, startingB int) *Model {
 
 func (m *Model) Forward(input integer.QuantizedInt8Matrix) Output {
 	out := Output{
-		scores:  make([][]integer.QuantizedInt, len(input.Matrix[0])),
-		context: make([]integer.QuantizedIntMatrix, len(input.Matrix[0])),
+		Scores:  make([][]integer.QuantizedInt, len(input.Matrix[0])),
+		Context: make([]integer.QuantizedIntMatrix, len(input.Matrix[0])),
 	}
 	qkv := m.GetQKV(input)
 	// to int 8
@@ -71,13 +71,13 @@ func (m *Model) Forward(input integer.QuantizedInt8Matrix) Output {
 	rescaledScores := scoresquantization.RequantizeMatrix(scaledScores, 12)
 	rescaledscoresquantization := integer.NewQuantizationClipScaling(12, 50, rescaledScores.Scaling)
 	for i, attscores := range rescaledScores.Matrix {
-		out.scores[i] = rescaledscoresquantization.IntSoftmax(attscores)
+		out.Scores[i] = rescaledscoresquantization.IntSoftmax(attscores)
 		softmaxquantization := integer.NewQuantizationClipScaling(16, m.QueryQuantization.Clip,
-			out.scores[i][0].Scaling)
-		scoresm := softmaxquantization.GetQuantizedMatrix(len(out.scores[i]), 1, out.scores[i])
+			out.Scores[i][0].Scaling)
+		scoresm := softmaxquantization.GetQuantizedMatrix(len(out.Scores[i]), 1, out.Scores[i])
 		//to int 8
 		i8Scores := softmaxquantization.RequantizeMatrixInt8(scoresm)
-		out.context[i] = integer.MulInt8(i8Values, i8Scores)
+		out.Context[i] = integer.MulInt8(i8Values, i8Scores)
 	}
 	return out
 }
