@@ -47,7 +47,7 @@ func NewFrom(m *selfattention.Model, startingB int) *Model {
 		QueryQuantization: &qq,
 		KeyQuantization:   &qk,
 		ValueQuantization: &qv,
-		ScaleFactor:       1.0 / mat.Sqrt(3.0),
+		ScaleFactor:       1.0 / mat.Sqrt(m.ScaleFactor),
 	}
 }
 
