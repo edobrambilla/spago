@@ -20,7 +20,6 @@ type Model struct {
 }
 
 type Output struct {
-	Scores  [][][]integer.QuantizedInt
 	Context []integer.QuantizedIntMatrix
 }
 
@@ -42,27 +41,30 @@ func NewFrom(m multiheadattention.Model, startingB int) *Model {
 
 func (m *Model) Forward(input integer.QuantizedInt8Matrix) Output {
 	var out Output
-
+	out = Output{
+		Context: make([]integer.QuantizedIntMatrix, len(input.Matrix[0])),
+	}
 	heads := make([][]integer.QuantizedIntMatrix, m.NumOfHeads)
 	int8heads := make([][]integer.QuantizedInt8Matrix, m.NumOfHeads)
 	for h, model := range m.Attention {
 		heads[h] = model.Forward(input).Context
 		qh := integer.NewQuantizationClipScaling(16, 50, heads[h][0].Scaling)
+		int8heads[h] = make([]integer.QuantizedInt8Matrix, len(heads[h][0].Matrix))
 		for j := 0; j < len(heads[h]); j++ {
 			int8heads[h][j] = qh.RequantizeMatrixInt8(heads[h][j])
 		}
 	}
 
-	concatHeads := make([]integer.QuantizedInt8Matrix, len(input.Matrix))
-	for i := 0; i < len(input.Matrix); i++ {
-		buf := make([]integer.QuantizedInt8Matrix, len(input.Matrix))
+	concatHeads := make([]integer.QuantizedInt8Matrix, len(input.Matrix[0]))
+	for i := 0; i < len(input.Matrix[0]); i++ {
+		buf := make([]integer.QuantizedInt8Matrix, m.NumOfHeads)
 		for j := 0; j < m.NumOfHeads; j++ {
 			buf[j] = int8heads[j][i]
 		}
 		qc := integer.NewQuantizationClipScaling(16, 50, int8heads[0][0].Scaling)
-		concatHeads[i] = qc.ConcatInt8(buf...)
+		concatHeads[i] = qc.ConcatColInt8(buf...)
 	}
-	for i := 0; i < len(input.Matrix); i++ {
+	for i := 0; i < len(input.Matrix[0]); i++ {
 		out.Context[i] = m.OutputMerge.Forward(concatHeads[i])
 	}
 	return out
