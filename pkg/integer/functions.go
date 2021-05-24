@@ -557,7 +557,7 @@ func (q *Quantization) StackInt8(input ...QuantizedInt8Matrix) QuantizedInt8Matr
 }
 
 // Concat row vectors only
-func (q *Quantization) Concat(input ...QuantizedIntMatrix) QuantizedIntMatrix {
+func (q *Quantization) ConcatRow(input ...QuantizedIntMatrix) QuantizedIntMatrix {
 	m := make([][]int32, 1)
 	vlen := 0
 	for i := 0; i < len(input); i++ {
@@ -574,7 +574,7 @@ func (q *Quantization) Concat(input ...QuantizedIntMatrix) QuantizedIntMatrix {
 	return QuantizedIntMatrix{m, q.scaling}
 }
 
-func (q *Quantization) ConcatInt8(input ...QuantizedInt8Matrix) QuantizedInt8Matrix {
+func (q *Quantization) ConcatRowInt8(input ...QuantizedInt8Matrix) QuantizedInt8Matrix {
 	m := make([][]int8, 1)
 	vlen := 0
 	for i := 0; i < len(input); i++ {
@@ -585,6 +585,39 @@ func (q *Quantization) ConcatInt8(input ...QuantizedInt8Matrix) QuantizedInt8Mat
 	for i := 0; i < len(input); i++ {
 		for j := 0; j < len(input[i].Matrix[0]); j++ {
 			m[0][k] = input[i].Matrix[0][j]
+			k++
+		}
+	}
+	return QuantizedInt8Matrix{m, q.scaling}
+}
+
+// Concat column vectors only
+func (q *Quantization) ConcatCol(input ...QuantizedIntMatrix) QuantizedIntMatrix {
+	length := len(input) * len(input[0].Matrix)
+	m := make([][]int32, length)
+	for i := 0; i < length; i++ {
+		m[i] = make([]int32, 1)
+	}
+	k := 0
+	for i := 0; i < len(input); i++ {
+		for j := 0; j < len(input[i].Matrix); j++ {
+			m[k][0] = input[i].Matrix[j][0]
+			k++
+		}
+	}
+	return QuantizedIntMatrix{m, q.scaling}
+}
+
+func (q *Quantization) ConcatColInt8(input ...QuantizedInt8Matrix) QuantizedInt8Matrix {
+	length := len(input) * len(input[0].Matrix)
+	m := make([][]int8, length)
+	for i := 0; i < length; i++ {
+		m[i] = make([]int8, 1)
+	}
+	k := 0
+	for i := 0; i < len(input); i++ {
+		for j := 0; j < len(input[i].Matrix); j++ {
+			m[k][0] = input[i].Matrix[j][0]
 			k++
 		}
 	}
