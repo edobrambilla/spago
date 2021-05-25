@@ -117,6 +117,18 @@ func TestQuantization_LinearAdd(t *testing.T) {
 	assert.InDelta(t, c.Scaling, float32(0.012210012), 1.0e-6)
 }
 
+func TestQuantization_LinearSub(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int32{2, -2, 4, 3, 4, -3}
+	v2 := []int32{2, 4, 8, 7, -1, 0}
+	a := q.GetQuantizedMatrixFromInt(2, 3, v1)
+	b := q.GetQuantizedMatrixFromInt(2, 3, v2)
+	c := Sub(a, b)
+	assert.Equal(t, c.Matrix[0], []int32{0, -6, -4})
+	assert.Equal(t, c.Matrix[1], []int32{-4, 5, -3})
+	assert.InDelta(t, c.Scaling, float32(0.012210012), 1.0e-6)
+}
+
 func TestQuantization_LinearProd(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v1 := []int32{2, -2, 4, 3, 4, -3}
@@ -141,6 +153,29 @@ func TestQuantization_LinearProdScalar(t *testing.T) {
 	assert.Equal(t, c.Matrix[0], []int32{4, -4, 8})
 	assert.Equal(t, c.Matrix[1], []int32{6, 8, -6})
 	assert.InDelta(t, c.Scaling, float32(0.00014908), 1.0e-6)
+}
+
+func TestQuantization_LinearSubScalarInt(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int32{2, -2, 4, 3, 4, -3}
+	s := QuantizedInt{
+		Value:   2,
+		Scaling: q.scaling,
+	}
+	a := q.GetQuantizedMatrixFromInt(2, 3, v1)
+	c := SubScalar(a, s)
+	assert.Equal(t, c.Matrix[0], []int32{0, -4, 2})
+	assert.Equal(t, c.Matrix[1], []int32{1, 2, -5})
+	assert.InDelta(t, c.Scaling, float32(0.012210012), 1.0e-6)
+}
+
+func TestQuantization_Reducemean(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int32{2, 2, 4, 3, 4, -2}
+	a := q.GetQuantizedMatrixFromInt(2, 3, v1)
+	c := ReduceMean(a)
+	assert.Equal(t, c.Value, int32(2))
+	assert.InDelta(t, c.Scaling, float32(0.012210012), 1.0e-6)
 }
 
 func TestQuantization_LinearDequantize(t *testing.T) {
@@ -178,6 +213,18 @@ func TestQuantization_LinearAddInt8(t *testing.T) {
 	assert.InDelta(t, c.Scaling, float32(0.012210012), 1.0e-6)
 }
 
+func TestQuantization_LinearSubInt8(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	v2 := []int8{2, 4, 8, 7, -1, 0}
+	a := q.GetQuantizedMatrixFromInt8(2, 3, v1)
+	b := q.GetQuantizedMatrixFromInt8(2, 3, v2)
+	c := SubInt8(a, b)
+	assert.Equal(t, c.Matrix[0], []int32{0, -6, -4})
+	assert.Equal(t, c.Matrix[1], []int32{-4, 5, -3})
+	assert.InDelta(t, c.Scaling, float32(0.012210012), 1.0e-6)
+}
+
 func TestQuantization_LinearProdInt8(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v1 := []int8{2, -2, 4, 3, 4, -3}
@@ -202,6 +249,20 @@ func TestQuantization_LinearProdScalarInt8(t *testing.T) {
 	assert.Equal(t, c.Matrix[0], []int32{4, -4, 8})
 	assert.Equal(t, c.Matrix[1], []int32{6, 8, -6})
 	assert.InDelta(t, c.Scaling, float32(0.00014908), 1.0e-6)
+}
+
+func TestQuantization_LinearSubScalarInt8(t *testing.T) {
+	q := NewQuantization(12, 50)
+	v1 := []int8{2, -2, 4, 3, 4, -3}
+	s := QuantizedInt{
+		Value:   2,
+		Scaling: q.scaling,
+	}
+	a := q.GetQuantizedMatrixFromInt8(2, 3, v1)
+	c := SubScalarInt8(a, s)
+	assert.Equal(t, c.Matrix[0], []int32{0, -4, 2})
+	assert.Equal(t, c.Matrix[1], []int32{1, 2, -5})
+	assert.InDelta(t, c.Scaling, float32(0.012210012), 1.0e-6)
 }
 
 func TestQuantization_Requantize(t *testing.T) {

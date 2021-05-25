@@ -223,6 +223,9 @@ func (q *Quantization) IntNormalization(input []int32) []QuantizedInt {
 	}
 	stdDev = int32(math.Round(float64(stdDev) / float64(len(input))))
 	stdDev = IntSqrt(stdDev)
+	if stdDev == 0 {
+		stdDev = 1
+	}
 	for i := 0; i < len(input); i++ {
 		normalizedLayer = append(normalizedLayer, QuantizedInt{
 			Value:   int32(math.Round(float64(input[i]-avg) / (float64(stdDev) * float64(q.scaling)))),
@@ -364,6 +367,45 @@ func Add(a, b QuantizedIntMatrix) QuantizedIntMatrix {
 	return QuantizedIntMatrix{m, a.Scaling}
 }
 
+func Sub(a, b QuantizedIntMatrix) QuantizedIntMatrix {
+	if len(a.Matrix[0]) != len(b.Matrix[0]) && (len(a.Matrix) != len(b.Matrix)) {
+		panic("Add: matrices with not compatible size")
+	}
+	if a.Scaling != b.Scaling {
+		panic("Add: warning, different scaling factor")
+	}
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = a.Matrix[i][j] - b.Matrix[i][j]
+		}
+	}
+	return QuantizedIntMatrix{m, a.Scaling}
+}
+
+func SubScalar(a QuantizedIntMatrix, scalar QuantizedInt) QuantizedIntMatrix {
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = a.Matrix[i][j] - scalar.Value
+		}
+	}
+	return QuantizedIntMatrix{m, a.Scaling}
+}
+
+func ReduceMean(a QuantizedIntMatrix) QuantizedInt {
+	sum := int32(0)
+	l := int32(0)
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			sum += a.Matrix[i][j]
+			l++
+		}
+	}
+	sum = int32(math.Round(float64(sum) / float64(l)))
+	return QuantizedInt{sum, a.Scaling}
+}
+
 // Int8 functions
 
 func (q *Quantization) GetQuantizedMatrixFromInt8(rows, cols int, data []int8) QuantizedInt8Matrix {
@@ -493,6 +535,32 @@ func AddInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
 	for i := 0; i < len(a.Matrix); i++ {
 		for j := 0; j < len(a.Matrix[0]); j++ {
 			m[i][j] = int32(a.Matrix[i][j]) + int32(b.Matrix[i][j])
+		}
+	}
+	return QuantizedIntMatrix{m, a.Scaling}
+}
+
+func SubInt8(a, b QuantizedInt8Matrix) QuantizedIntMatrix {
+	if len(a.Matrix[0]) != len(b.Matrix[0]) && (len(a.Matrix) != len(b.Matrix)) {
+		panic("Add: matrices with not compatible size")
+	}
+	if a.Scaling != b.Scaling {
+		panic("Add: warning, different scaling factor")
+	}
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = int32(a.Matrix[i][j]) - int32(b.Matrix[i][j])
+		}
+	}
+	return QuantizedIntMatrix{m, a.Scaling}
+}
+
+func SubScalarInt8(a QuantizedInt8Matrix, scalar QuantizedInt) QuantizedIntMatrix {
+	m := intZeroMatrix(len(a.Matrix), len(a.Matrix[0]))
+	for i := 0; i < len(a.Matrix); i++ {
+		for j := 0; j < len(a.Matrix[0]); j++ {
+			m[i][j] = int32(a.Matrix[i][j]) - scalar.Value
 		}
 	}
 	return QuantizedIntMatrix{m, a.Scaling}
