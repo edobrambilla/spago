@@ -12,7 +12,7 @@ type LayerNormIntModel struct {
 
 // New returns a new model with parameters initialized to zeros.
 func NewLayerNormIntModel(size int, w, b []float32) *LayerNormIntModel {
-	q := NewQuantization(8, 50)
+	q := NewQuantization(16, 50)
 	qb := NewQuantizationClipScaling(q.B, q.Clip, q.scaling*q.scaling)
 	model := &LayerNormIntModel{
 		W: q.QuantizeFloatMatrix(1, size, w),
