@@ -68,6 +68,27 @@ func Conv2D(g *ag.Graph, w, x ag.Node, xStride, yStride int) ag.Node {
 	return g.Reshape(g.Concat(outList...), dimx, dimy)
 }
 
+// Conv1D performs a 1D convolution.
+func Conv1D(g *ag.Graph, w, x ag.Node, stride int) ag.Node {
+	var dim int
+	if (x.Value().Columns()-w.Value().Columns())%stride != 0 {
+		panic("Incompatible stride value for columns")
+	}
+	if x.Value().Rows() != w.Value().Rows() {
+		panic("Incompatible stride value for rows")
+	}
+	dim = (x.Value().Columns()-w.Value().Columns())/stride + 1
+
+	var outList []ag.Node
+	for i := 0; i < dim; i++ {
+		var view = g.View(x, 0, i*stride, w.Value().Rows(), w.Value().Columns())
+		var dotProduct = g.Dot(view, w)
+		outList = append(outList, dotProduct)
+	}
+
+	return g.Concat(outList...)
+}
+
 // Separate returns a matrix of Node(s) represented as a slice of slice containing the elements extracted from the input.
 // The dimensions of the resulting matrix are the same of the input.
 func Separate(g *ag.Graph, x ag.Node) [][]ag.Node {
