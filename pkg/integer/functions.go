@@ -149,7 +149,7 @@ func (q *Quantization) IntegerExp(input int32) QuantizedInt {
 	if input < (cnst * qln) {
 		qint = cnst * qln
 	}
-	qp := int32(math.Floor(float64(qint / qln)))
+	qp := qint / qln
 	r := qint - qln*qp
 	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling}
 	expInt := qtmp.integerPoly2(a, b, c, r)
@@ -216,12 +216,12 @@ func (q *Quantization) IntNormalization(input []int32) []QuantizedInt {
 	for i := 0; i < len(input); i++ {
 		avg += input[i]
 	}
-	avg = int32(math.Round(float64(avg) / float64(len(input))))
+	avg = avg / int32(len(input))
 	stdDev := int32(0)
 	for i := 0; i < len(input); i++ {
 		stdDev += (input[i] - avg) * (input[i] - avg)
 	}
-	stdDev = int32(math.Round(float64(stdDev) / float64(len(input))))
+	stdDev = stdDev / int32(len(input))
 	stdDev = IntSqrt(stdDev)
 	if stdDev == 0 {
 		stdDev = 1
@@ -402,7 +402,7 @@ func ReduceMean(a QuantizedIntMatrix) QuantizedInt {
 			l++
 		}
 	}
-	sum = int32(math.Round(float64(sum) / float64(l)))
+	sum = sum / l
 	return QuantizedInt{sum, a.Scaling}
 }
 
