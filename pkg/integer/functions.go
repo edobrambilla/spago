@@ -36,14 +36,15 @@ type QuantizedIntMatrix struct {
 }
 
 type ExpParameters struct {
-	a    float32
-	b    float32
-	c    float32
-	ln2  float32
-	cnst int32
-	qln  int32
-	qb   int32
-	qc   int32
+	a          float32
+	b          float32
+	c          float32
+	ln2        float32
+	cnst       int32
+	qln        int32
+	qb         int32
+	qc         int32
+	scalingOut float32
 }
 
 func NewExpParameters(q Quantization) ExpParameters {
@@ -56,14 +57,15 @@ func NewExpParameters(q Quantization) ExpParameters {
 	qb := int32(math.Floor(float64(b / q.scaling)))
 	qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
 	return ExpParameters{
-		a:    a,
-		b:    b,
-		c:    c,
-		ln2:  ln2,
-		cnst: cnst,
-		qln:  qln,
-		qb:   qb,
-		qc:   qc,
+		a:          a,
+		b:          b,
+		c:          c,
+		ln2:        ln2,
+		cnst:       cnst,
+		qln:        qln,
+		qb:         qb,
+		qc:         qc,
+		scalingOut: a * q.scaling * q.scaling,
 	}
 }
 
@@ -131,9 +133,9 @@ func (q *Quantization) integerPoly(a, b, c float32, input int32) QuantizedInt {
 func (q *Quantization) integerPoly2(p ExpParameters, input int32) QuantizedInt {
 	//qb := int32(math.Floor(float64(b / q.scaling)))
 	//qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
-	scalingOut := p.a * q.scaling * q.scaling
+	//scalingOut := p.a * q.scaling * q.scaling
 	qOut := ((input + p.qb) * (input)) + p.qc
-	return QuantizedInt{qOut, scalingOut}
+	return QuantizedInt{qOut, p.scalingOut}
 }
 
 func (q *Quantization) integerErf(input int32) QuantizedInt {
