@@ -154,25 +154,16 @@ func (q *Quantization) RequantizeInt8(x int32, qInt8 *Quantization) QuantizedInt
 }
 
 func (q *Quantization) integerPoly(p ErfParameters, input int32) QuantizedInt {
-	//qb := int32(math.Floor(float64(b / q.scaling)))
-	//qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
-	//scalingOut := a * q.scaling * q.scaling
 	qOut := ((input + p.qb) * (input + p.qb)) + p.qc
 	return QuantizedInt{qOut, p.scalingOut}
 }
 
 func (q *Quantization) integerPoly2(p ExpParameters, input int32) QuantizedInt {
-	//qb := int32(math.Floor(float64(b / q.scaling)))
-	//qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
-	//scalingOut := p.a * q.scaling * q.scaling
 	qOut := ((input + p.qb) * (input)) + p.qc
 	return QuantizedInt{qOut, p.scalingOut}
 }
 
 func (q *Quantization) integerErf(input int32, p ErfParameters) QuantizedInt {
-	//a := float32(-0.28888)
-	//b := float32(-1.769)
-	//c := float32(1.0)
 	var qsgn = int32(1)
 	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling}
 	if input > 0 {
@@ -204,12 +195,6 @@ func (q *Quantization) IntegerGelu(input int32, p ErfParameters) QuantizedInt {
 }
 
 func (q *Quantization) IntegerExp(input int32, p ExpParameters) QuantizedInt {
-	//a := float32(0.35815147)
-	//b := float32(2.70732486)
-	//c := float32(1.0)
-	//ln2 := float32(-0.6931)
-	//cnst := int32(30)
-	//qln := int32(math.Floor(float64(ln2 / q.scaling)))
 	qint := input
 	if input < (p.cnst * p.qln) {
 		qint = p.cnst * p.qln
