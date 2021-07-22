@@ -35,6 +35,38 @@ type QuantizedIntMatrix struct {
 	Scaling float32   // Scaling factor. x (float) = q * Scaling
 }
 
+type ExpParameters struct {
+	a    float32
+	b    float32
+	c    float32
+	ln2  float32
+	cnst int32
+	qln  int32
+	qb   int32
+	qc   int32
+}
+
+func NewExpParameters(q Quantization) ExpParameters {
+	a := float32(0.35815147)
+	b := float32(2.70732486)
+	c := float32(1.0)
+	ln2 := float32(-0.6931)
+	cnst := int32(30)
+	qln := int32(math.Floor(float64(ln2 / q.scaling)))
+	qb := int32(math.Floor(float64(b / q.scaling)))
+	qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
+	return ExpParameters{
+		a:    a,
+		b:    b,
+		c:    c,
+		ln2:  ln2,
+		cnst: cnst,
+		qln:  qln,
+		qb:   qb,
+		qc:   qc,
+	}
+}
+
 func NewQuantization(b int, clip float32) Quantization {
 	scaling := clip / (mat.Pow(2.0, float32(b)) - 1)
 	return Quantization{b, clip, scaling}
@@ -96,11 +128,11 @@ func (q *Quantization) integerPoly(a, b, c float32, input int32) QuantizedInt {
 	return QuantizedInt{qOut, scalingOut}
 }
 
-func (q *Quantization) integerPoly2(a, b, c float32, input int32) QuantizedInt {
-	qb := int32(math.Floor(float64(b / q.scaling)))
-	qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
-	scalingOut := a * q.scaling * q.scaling
-	qOut := ((input + qb) * (input)) + qc
+func (q *Quantization) integerPoly2(p ExpParameters, input int32) QuantizedInt {
+	//qb := int32(math.Floor(float64(b / q.scaling)))
+	//qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
+	scalingOut := p.a * q.scaling * q.scaling
+	qOut := ((input + p.qb) * (input)) + p.qc
 	return QuantizedInt{qOut, scalingOut}
 }
 
@@ -138,21 +170,21 @@ func (q *Quantization) IntegerGelu(input int32) QuantizedInt {
 	return QuantizedInt{qOut, scalingOut}
 }
 
-func (q *Quantization) IntegerExp(input int32) QuantizedInt {
-	a := float32(0.35815147)
-	b := float32(2.70732486)
-	c := float32(1.0)
-	ln2 := float32(-0.6931)
-	cnst := int32(30)
-	qln := int32(math.Floor(float64(ln2 / q.scaling)))
+func (q *Quantization) IntegerExp(input int32, p ExpParameters) QuantizedInt {
+	//a := float32(0.35815147)
+	//b := float32(2.70732486)
+	//c := float32(1.0)
+	//ln2 := float32(-0.6931)
+	//cnst := int32(30)
+	//qln := int32(math.Floor(float64(ln2 / q.scaling)))
 	qint := input
-	if input < (cnst * qln) {
-		qint = cnst * qln
+	if input < (p.cnst * p.qln) {
+		qint = p.cnst * p.qln
 	}
-	qp := qint / qln
-	r := qint - qln*qp
+	qp := qint / p.qln
+	r := qint - p.qln*qp
 	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling}
-	expInt := qtmp.integerPoly2(a, b, c, r)
+	expInt := qtmp.integerPoly2(p, r)
 	t := expInt.Value >> qp
 	return QuantizedInt{t, expInt.Scaling}
 }
@@ -167,12 +199,12 @@ func max(input []int32) int32 {
 	return m
 }
 
-func (q *Quantization) IntSoftmax(input []int32) []QuantizedInt {
+func (q *Quantization) IntSoftmax(input []int32, p ExpParameters) []QuantizedInt {
 	max := max(input)
 	sum := int32(0)
 	exp := make([]QuantizedInt, 0)
 	for i := 0; i < len(input); i++ {
-		exp = append(exp, q.IntegerExp(input[i]-max))
+		exp = append(exp, q.IntegerExp(input[i]-max, p))
 		sum += exp[i].Value
 	}
 	factor := exp[0].Scaling

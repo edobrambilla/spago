@@ -33,22 +33,24 @@ func TestQuantiztion_IntegerGelu(t *testing.T) {
 func TestQuantiztion_IntegerExp(t *testing.T) {
 	q := NewQuantization(12, 50)
 	a := q.Quantize(-0.55 - 1.2)
-	exp := q.IntegerExp(a.Value)
+	params := NewExpParameters(q)
+	exp := q.IntegerExp(a.Value, params)
 	assert.InDelta(t, float32(exp.Value)*exp.Scaling, float32(0.17566888), 1.0e-6)
 	q = NewQuantization(12, 50)
 	b := q.Quantize(1.2 - 1.2)
-	exp = q.IntegerExp(b.Value)
+	exp = q.IntegerExp(b.Value, params)
 	assert.InDelta(t, float32(exp.Value)*exp.Scaling, float32(0.9999778), 1.0e-6)
 	q = NewQuantization(12, 50)
 	c := q.Quantize(-500 - 1.2)
-	exp = q.IntegerExp(c.Value)
+	exp = q.IntegerExp(c.Value, params)
 	assert.InDelta(t, float32(exp.Value)*exp.Scaling, float32(9.313019e-10), 1.0e-6)
 }
 
 func TestQuantiztion_IntegerSoftmax(t *testing.T) {
 	q := NewQuantization(12, 50)
 	v := []int32{-45, 98, -491}
-	softmax := q.IntSoftmax(v)
+	params := NewExpParameters(q)
+	softmax := q.IntSoftmax(v, params)
 	s := float32(softmax[0].Value) * softmax[0].Scaling
 	assert.InDelta(t, s, float32(0.1492918), 1.0e-6)
 	s = float32(softmax[1].Value) * softmax[0].Scaling

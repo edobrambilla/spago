@@ -70,8 +70,9 @@ func (m *Model) Forward(input integer.QuantizedInt8Matrix) Output {
 	scoresquantization := integer.NewQuantizationClipScaling(m.QueryQuantization.B, m.QueryQuantization.Clip, scaledScores.Scaling)
 	rescaledScores := scoresquantization.RequantizeMatrix(scaledScores, 12)
 	rescaledscoresquantization := integer.NewQuantizationClipScaling(12, 50, rescaledScores.Scaling)
+	expParams := integer.NewExpParameters(rescaledscoresquantization)
 	for i, attscores := range rescaledScores.Matrix {
-		out.Scores[i] = rescaledscoresquantization.IntSoftmax(attscores)
+		out.Scores[i] = rescaledscoresquantization.IntSoftmax(attscores, expParams)
 		softmaxquantization := integer.NewQuantizationClipScaling(16, m.QueryQuantization.Clip,
 			out.Scores[i][0].Scaling)
 		scoresm := softmaxquantization.GetQuantizedMatrix(len(out.Scores[i]), 1, out.Scores[i])
