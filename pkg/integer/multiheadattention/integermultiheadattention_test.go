@@ -36,7 +36,7 @@ func Test_LinearMultiheadAttention(t *testing.T) {
 	qin := q.QuantizeFloatMatrixInt8(3, 4, xs)
 	transposedqin := integer.TransposeInt8(qin)
 	output := model.Forward(transposedqin)
-	assert.Equal(t, output.Context[0].Matrix[0][0], int32(104))
+	assert.Equal(t, output.Context[0].Matrix[0][0], int32(32))
 }
 
 func newTestModel() *linear.Model {
