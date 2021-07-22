@@ -69,6 +69,37 @@ func NewExpParameters(q Quantization) ExpParameters {
 	}
 }
 
+type ErfParameters struct {
+	a          float32
+	b          float32
+	c          float32
+	scaling    float32
+	scaledb    int32
+	qb         int32
+	qc         int32
+	scalingOut float32
+}
+
+func NewErfParameters(q Quantization) ErfParameters {
+	a := float32(-0.28888)
+	b := float32(-1.769)
+	c := float32(1.0)
+	s := q.scaling / 1.4142135624
+	qb := int32(math.Floor(float64(b / s)))
+	qc := int32(math.Floor(float64(c / (a * s * s))))
+	scaledb := int32(-b / s)
+	return ErfParameters{
+		a:          a,
+		b:          b,
+		c:          c,
+		scaling:    s,
+		scaledb:    scaledb,
+		qb:         qb,
+		qc:         qc,
+		scalingOut: a * s * s,
+	}
+}
+
 func NewQuantization(b int, clip float32) Quantization {
 	scaling := clip / (mat.Pow(2.0, float32(b)) - 1)
 	return Quantization{b, clip, scaling}
@@ -122,12 +153,12 @@ func (q *Quantization) RequantizeInt8(x int32, qInt8 *Quantization) QuantizedInt
 	return qInt8.QuantizeInt8(f)
 }
 
-func (q *Quantization) integerPoly(a, b, c float32, input int32) QuantizedInt {
-	qb := int32(math.Floor(float64(b / q.scaling)))
-	qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
-	scalingOut := a * q.scaling * q.scaling
-	qOut := ((input + qb) * (input + qb)) + qc
-	return QuantizedInt{qOut, scalingOut}
+func (q *Quantization) integerPoly(p ErfParameters, input int32) QuantizedInt {
+	//qb := int32(math.Floor(float64(b / q.scaling)))
+	//qc := int32(math.Floor(float64(c / (a * q.scaling * q.scaling))))
+	//scalingOut := a * q.scaling * q.scaling
+	qOut := ((input + p.qb) * (input + p.qb)) + p.qc
+	return QuantizedInt{qOut, p.scalingOut}
 }
 
 func (q *Quantization) integerPoly2(p ExpParameters, input int32) QuantizedInt {
@@ -138,33 +169,33 @@ func (q *Quantization) integerPoly2(p ExpParameters, input int32) QuantizedInt {
 	return QuantizedInt{qOut, p.scalingOut}
 }
 
-func (q *Quantization) integerErf(input int32) QuantizedInt {
-	a := float32(-0.28888)
-	b := float32(-1.769)
-	c := float32(1.0)
+func (q *Quantization) integerErf(input int32, p ErfParameters) QuantizedInt {
+	//a := float32(-0.28888)
+	//b := float32(-1.769)
+	//c := float32(1.0)
 	var qsgn = int32(1)
 	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling}
 	if input > 0 {
-		if input > (int32(-b / q.scaling)) {
-			input = int32(-b / q.scaling)
+		if input > (p.scaledb) {
+			input = p.scaledb
 		}
 	} else {
 		qsgn = -1
-		if -input > (int32(-b / q.scaling)) {
-			input = -int32(-b / q.scaling)
+		if -input > (p.scaledb) {
+			input = -p.scaledb
 		} else {
 			input = -input
 		}
 	}
-	qL := qtmp.integerPoly(a, b, c, input)
+	qL := qtmp.integerPoly(p, input)
 	qOut := qsgn * qL.Value
 	scalingOut := qL.Scaling
 	return QuantizedInt{qOut, scalingOut}
 }
 
-func (q *Quantization) IntegerGelu(input int32) QuantizedInt {
+func (q *Quantization) IntegerGelu(input int32, p ErfParameters) QuantizedInt {
 	qtmp := Quantization{q.B, math.MaxFloat32, q.scaling / 1.4142135624}
-	qErf := qtmp.integerErf(input)
+	qErf := qtmp.integerErf(input, p)
 	qOne := int32(math.Floor(float64(1.0 / qErf.Scaling)))
 	qOut := input * (qErf.Value + qOne)
 	scalingOut := q.scaling * qErf.Scaling / 2
